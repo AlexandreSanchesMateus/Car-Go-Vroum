@@ -1,0 +1,12 @@
+GOAL :
+Poursuivre les autres joueurs
+	Un designe qui forme une boucle, peut importe le chemin
+	Pas de cul-de-sac
+
+Ajouter de la verticalité (pont, dune, jump)
+
+Openspace pour aller vite et close corner pour drifter
+	Faire "deux biome" (ex : dune, herbe, ville, arène, ...)
+
+map de base 1/2
+Max height map => 200 unité
