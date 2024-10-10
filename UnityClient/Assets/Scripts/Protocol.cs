@@ -21,92 +21,91 @@ namespace NetworkProtocol
 
     public class Serializer
     {
-        public static void Serialize_sByte(ref List<byte> byteArray, sbyte value)
+        public static void Serialize_float(List<byte> byteArray, float value)
         {
-            Serialize_uByte(ref byteArray, (byte)value);
+            Serialize_i32(byteArray, BitConverter.SingleToInt32Bits(value));
         }
 
-        public static void Serialize_sByte(ref List<byte> byteArray, ref int offset, sbyte value)
+        public static void Serialize_sByte(List<byte> byteArray, sbyte value)
         {
-            Serialize_uByte(ref byteArray, ref offset, (byte)value);
+            Serialize_uByte(byteArray, (byte)value);
         }
 
-        public static void Serialize_i16(ref List<byte> byteArray, Int16 value)
-        {
-            Serialize_u16(ref byteArray, (UInt16)value);
-        }
-
-        public static void Serialize_i16(ref List<byte> byteArray, ref int offset, Int16 value)
-        {
-            Serialize_u16(ref byteArray, ref offset, (UInt16)value);
-        }
-
-        public static void Serialize_i32(ref List<byte> byteArray, Int32 value)
-        {
-            Serialize_u32(ref byteArray, (UInt32)value);
-        }
-
-        public static void Serialize_i32(ref List<byte> byteArray, ref int offset, Int32 value)
-        {
-            Serialize_u32(ref byteArray, ref offset, (UInt32)value);
-        }
-
-        public static void Serialize_i64(ref List<byte> byteArray, Int64 value)
-        {
-            Serialize_u64(ref byteArray, (UInt64)value);
-        }
-
-        public static void Serialize_i64(ref List<byte> byteArray, ref int offset, Int64 value)
-        {
-            Serialize_u64(ref byteArray, ref offset, (UInt64)value);
-        }
-
-        public static void Serialize_uByte(ref List<byte> byteArray, byte value)
-        {
-            int offset = byteArray.Count;
-            byteArray.Capacity = offset + sizeof(byte);
-            Serialize_uByte(ref byteArray, ref offset, (byte)value);
-        }
-
-        public static void Serialize_uByte(ref List<byte> byteArray, ref int offset, byte value)
-        {
-            byteArray[offset] = value;
-        }
-
-        public static void Serialize_u16(ref List<byte> byteArray, UInt16 value)
-        {
-            int offset = byteArray.Count;
-            byteArray.Capacity = offset + sizeof(UInt16);
-            Serialize_u16(ref byteArray, ref offset, value);
-        }
-
-        public static void Serialize_u16(ref List<byte> byteArray, ref int offset, UInt16 value)
+        public static void Serialize_i16(List<byte> byteArray, Int16 value)
         {
             byte[] networkValue = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(value));
-            for (int i = offset; i < offset + sizeof(UInt16); ++i)
-            {
-
-            }
+            byteArray.AddRange(networkValue);
         }
 
-        public static void Serialize_u32(ref List<byte> byteArray, UInt32 value)
+        public static void Serialize_i32(List<byte> byteArray, Int32 value)
         {
-
+            byte[] networkValue = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(value));
+            byteArray.AddRange(networkValue);
         }
 
-        public static void Serialize_u32(ref List<byte> byteArray, ref int offset, UInt32 value)
+        public static void Serialize_uByte(List<byte> byteArray, byte value)
         {
-
+            byteArray.Add(value);
         }
 
-        public static void Serialize_u64(ref List<byte> byteArray, UInt64 value)
+        public static void Serialize_u16(List<byte> byteArray, UInt16 value)
         {
-
+            Serialize_i16(byteArray, (Int16)value);
         }
 
-        public static void Serialize_u64(ref List<byte> byteArray, ref int offset, UInt64 value)
+        public static void Serialize_u32(List<byte> byteArray, UInt32 value)
         {
+            Serialize_i32(byteArray, (Int32)value);
+        }
 
+        public static float Deserialize_float(List<byte> byteArray, ref int offset)
+        {
+            return BitConverter.Int32BitsToSingle(Deserialize_i32(byteArray, ref offset));
+        }
+
+        public static sbyte Deserialize_sByte(List<byte> byteArray, ref int offset)
+        {
+            return (sbyte)Deserialize_uByte(byteArray, ref offset);
+        }
+
+        public static Int16 Deserialize_i16(List<byte> byteArray, ref int offset)
+        {
+            Int16 value = BitConverter.ToInt16(byteArray.ToArray(), offset);
+            offset += sizeof(Int16);
+
+            return (Int16)IPAddress.NetworkToHostOrder(value);
+        }
+
+        public static Int32 Deserialize_i32(List<byte> byteArray, ref int offset)
+        {
+            Int32 value = BitConverter.ToInt32(byteArray.ToArray(), offset);
+            offset += sizeof(Int32);
+
+            return (Int32)IPAddress.NetworkToHostOrder(value);
+        }
+
+        public static byte Deserialize_uByte(List<byte> byteArray, ref int offset)
+        {
+            byte value = byteArray[offset];
+            offset += sizeof(byte);
+
+            return value;
+        }
+
+        public static UInt16 Deserialize_u16(List<byte> byteArray, ref int offset)
+        {
+            UInt16 value = BitConverter.ToUInt16(byteArray.ToArray(), offset);
+            offset += sizeof(UInt16);
+
+            return (UInt16)IPAddress.NetworkToHostOrder((Int16)value);
+        }
+
+        public static UInt32 Deserialize_u32(List<byte> byteArray, ref int offset)
+        {
+            UInt32 value = BitConverter.ToUInt32(byteArray.ToArray(), offset);
+            offset += sizeof(UInt32);
+
+            return (UInt32)IPAddress.NetworkToHostOrder((Int32)value);
         }
     }
 }

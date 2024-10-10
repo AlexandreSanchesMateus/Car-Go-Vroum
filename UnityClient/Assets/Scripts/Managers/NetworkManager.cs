@@ -1,4 +1,5 @@
 using ENet6;
+using NetworkProtocol;
 using System;
 using System.Collections;
 using System.Collections.Generic;

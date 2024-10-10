@@ -31,7 +31,8 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	fmt::print(stderr, fg(fmt::color::green), "=> ENet Initialized\n");
+	fmt::print("    => ");
+	fmt::print(stderr, fg(fmt::color::green), "ENet Initialized\n");
 
 	// Création de l'hôte serveur
 	ENetAddress address;
@@ -45,13 +46,15 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	fmt::print(stderr, fg(fmt::color::green), "=> ENet host created\n\n");
+	fmt::print("    => ");
+	fmt::print(stderr, fg(fmt::color::green), "ENet host create\n\n");
 
-	fmt::print(stderr, fg(fmt::color::green), " ___ ___   _   _____   __\n");
-	fmt::print(stderr, fg(fmt::color::green), "| _ \\ __| /_\\ |   \\ \\ / /\n");
-	fmt::print(stderr, fg(fmt::color::green), "|   / _| / _ \\| |) \\ V /\n");
-	fmt::print(stderr, fg(fmt::color::green), "|_|_\\___/_/ \\_\\___/ |_|\n");
-	fmt::println("                 Application port : {}\n", AppPort);
+	fmt::println("< ================================================================= >");
+	fmt::print(stderr, fg(fmt::color::green), "     ___ ___   _   _____   __\n");
+	fmt::print(stderr, fg(fmt::color::green), "    | _ \\ __| /_\\ |   \\ \\ / /\n");
+	fmt::print(stderr, fg(fmt::color::green), "    |   / _| / _ \\| |) \\ V /\n");
+	fmt::print(stderr, fg(fmt::color::green), "    |_|_\\___/_/ \\_\\___/ |_|\n");
+	fmt::println("               Application port : {}\n", AppPort);
 
 	GameData gameData;
 	gameData.state = GameState::WAITING;
@@ -81,7 +84,8 @@ int main(int argc, char* argv[])
 					player.ready = false;
 					player.name.clear();
 
-					fmt::println("Player #{} connected", player.index);
+					fmt::print(stderr, fg(fmt::color::green), "=>");
+					fmt::println(" Player #{} connected", player.index);
 				}
 					break;
 
@@ -95,7 +99,8 @@ int main(int argc, char* argv[])
 					Player& player = *it;
 					player.peer = nullptr;
 
-					fmt::println("Player #{} disconnected", player.index);
+					fmt::print(stderr, fg(fmt::color::red), "<=");
+					fmt::println(" Player #{} disconnected", player.index);
 
 					if (!player.IsPending())
 					{
@@ -131,11 +136,11 @@ int main(int argc, char* argv[])
 		// Tick logique
 	}
 
-	/*for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
+	for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
 	{
 		if (it->peer != nullptr)
 			enet_peer_disconnect_now(it->peer, 0);
-	}*/
+	}
 
 	enet_deinitialize();
 
@@ -163,8 +168,7 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 		if (gameData.state != GameState::WAITING || playerCount > MaxPlayerCount)
 		{
 			// Deconnection player
-
-
+			enet_peer_disconnect(player.peer, 0);
 		}
 		else
 		{
@@ -179,6 +183,8 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 			{
 				enet_peer_send(it->peer, 0, playerList);
 			}
+
+			fmt::println("Player #{} ({}) initialize", player.index, player.name);
 		}
 	}
 		break;
@@ -213,6 +219,12 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 			{
 				// init world
 
+				for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
+				{
+					if (it->peer != nullptr && it->IsPending())
+						enet_peer_disconnect(it->peer, 0);
+				}
+
 				ENetPacket* packet = build_running_state_packet(gameData);
 				for (const Player& player : gameData.players)
 				{
@@ -225,10 +237,12 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 		break;
 
 	case Opcode::C_PlayerInputs:
+	{
 		PlayerInputPacket playerInputs = PlayerInputPacket::Deserialize(message, offset);
 
 		// Traitement input
 
+	}
 		break;
 	}
 }
