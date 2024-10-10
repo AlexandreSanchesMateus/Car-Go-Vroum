@@ -14,8 +14,12 @@ public class LobbySlot : MonoBehaviour
     [SerializeField]
     private Color notReadyColor;
 
+    public int m_playerIndex { get; private set; }
+
     public void InitSlot(int id, string psedo, bool ready)
     {
+        m_playerIndex = id;
+
         idTxt.text = id.ToString();
         psedoTxt.text = psedo;
         ChnageReadyStatus(ready);

@@ -5,7 +5,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewGameRefSCO", menuName = "ScriptableObjects/GameRefSCO", order = 1)]
 public class GameRefSCO : ScriptableObject
 {
-    public NetworkManager Network {  get; set; }
-    public MenuManager Menu { get; set; }
-    public GameManager Game { get; set; }
+    public NetworkManager network;
+    public MenuManager Menu;
+    public GameManager Game;
 }

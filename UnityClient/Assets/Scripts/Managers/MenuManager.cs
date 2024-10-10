@@ -1,4 +1,5 @@
 using NaughtyAttributes;
+using NetworkProtocol;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -28,7 +29,7 @@ public class MenuManager : MonoBehaviour
     [SerializeField, BoxGroup("Lobby")]
     private Transform content;
 
-    private List<LobbySlot> lobbySlots = new List<LobbySlot>();
+    private List<LobbySlot> m_lobbySlots = new List<LobbySlot>();
 
     private void Awake()
     {
@@ -53,7 +54,7 @@ public class MenuManager : MonoBehaviour
         connectionPanel.SetActive(true);
 
         // Tentative de connection
-        if (SCORef.Network.Connect(ipInputField.text))
+        if (SCORef.network.Connect(ipInputField.text))
         {
             lobbyPanel.SetActive(true);
         }
@@ -64,5 +65,24 @@ public class MenuManager : MonoBehaviour
         }
 
         connectionPanel.SetActive(false);
+    }
+
+    public void HandleMessage(byte[] message, GameData gameData)
+    {
+        List<byte> byteArray = new List<byte>(message);
+
+        int offset = 0;
+        EOpcode opcode = (EOpcode)Serializer.Deserialize_uByte(byteArray, ref offset);
+        switch (opcode)
+        {
+            case EOpcode.S_GameData:
+                gameData.ownPlayerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
+                break;
+
+            case EOpcode.S_PlayerList:
+                PlayerListPacket packet = PlayerListPacket.Deserialize(byteArray, ref offset);
+
+                break;
+        }
     }
 }

@@ -14,6 +14,8 @@ public class NetworkManager : MonoBehaviour
     private ENet6.Host enetHost = null;
     private ENet6.Peer? serverPeer = null;
 
+    private GameData m_gameData;
+
     public static bool IsConnected { get; private set; } = false;
 
     public bool Connect(string addressString)
@@ -61,9 +63,9 @@ public class NetworkManager : MonoBehaviour
     // Start is called before the first frame update
     void Awake()
     {
-        if (SCORef && !SCORef.Network)
+        if (SCORef && !SCORef.network)
         {
-            SCORef.Network = this;
+            SCORef.network = this;
             DontDestroyOnLoad(this);
 
             if (!ENet6.Library.Initialize())
@@ -84,10 +86,19 @@ public class NetworkManager : MonoBehaviour
     // FixedUpdate est appelé à chaque Tick (réglé dans le projet)
     void FixedUpdate()
     {
-        if (!IsConnected)
-            return;
+        if (IsConnected)
+        {
+            if (!RunNetwork())
+            {
+                serverPeer.Value.DisconnectNow(0);
+                enetHost.Flush();
+                enetHost.Dispose();
 
-        RunNetwork();
+                enetHost = null;
+                serverPeer = null;
+                IsConnected = false;
+            }
+        }
     }
 
     private bool RunNetwork()
@@ -100,17 +111,13 @@ public class NetworkManager : MonoBehaviour
                 switch (evt.Type)
                 {
                     case ENet6.EventType.None:
-                        Debug.Log("?");
-                        break;
-
                     case ENet6.EventType.Connect:
-                        Debug.Log("Connect");
+                        Debug.Log("Unexpected event");
                         break;
 
                     case ENet6.EventType.Disconnect:
-                        Debug.Log("Disconnect");
-                        serverPeer = null;
-                        IsConnected = false;
+                    case ENet6.EventType.Timeout:
+                        Debug.Log("Disconnected from server");
                         return false;
 
                     case ENet6.EventType.Receive:
@@ -118,15 +125,26 @@ public class NetworkManager : MonoBehaviour
                         byte[] array = new byte[evt.Packet.Length];
                         Marshal.Copy(evt.Packet.Data, array, 0, evt.Packet.Length);
 
-                        // On gère le message qu'on a reçu
-                        HandleMessage(array, evt.Packet.Length);
+                        if (m_gameData != null && SCORef != null)
+                        {
+                            switch(m_gameData.state)
+                            {
+                                case GameData.GameState.WAITING:
+                                    if(SCORef.Menu != null)
+                                        SCORef.Menu.HandleMessage(array, m_gameData);
+                                    break;
+
+                                case GameData.GameState.RUNNING:
+                                case GameData.GameState.FINISHED:
+                                    if (SCORef.Game != null)
+                                        SCORef.Game.HandleMessage(array, m_gameData);
+                                    break;
+
+                            }
+                        }
 
                         // On n'oublie pas de libérer le packet
                         evt.Packet.Dispose();
-                        break;
-
-                    case ENet6.EventType.Timeout:
-                        Debug.Log("Timeout");
                         break;
                 }
             }
@@ -134,10 +152,5 @@ public class NetworkManager : MonoBehaviour
         }
 
         return true;
-    }
-
-    private void HandleMessage(byte[] payload, int size)
-    {
-        // int offset = 0;
     }
 }
