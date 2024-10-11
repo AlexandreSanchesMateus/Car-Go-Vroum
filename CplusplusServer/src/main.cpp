@@ -11,7 +11,7 @@
 
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData);
-ENetPacket* build_player_list_packet(GameData gameData);
+ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(GameData gameData);
 
 int main(int argc, char* argv[])
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 	enet_address_build_any(&address, ENET_ADDRESS_TYPE_IPV6);
 	address.port = AppPort;
 
-	ENetHost* host = enet_host_create(ENET_ADDRESS_TYPE_ANY, &address, 10, 0, 0, 0);
+	ENetHost* host = enet_host_create(ENET_ADDRESS_TYPE_ANY, &address, MaxPlayerCount + 2, 0, 0, 0);
 	if (!host)
 	{
 		fmt::print(stderr, fg(fmt::color::red), "Failed to create ENet host\n");
@@ -49,15 +49,15 @@ int main(int argc, char* argv[])
 	fmt::print("    => ");
 	fmt::print(stderr, fg(fmt::color::green), "ENet host create\n\n");
 
-	fmt::println("< ================================================================= >");
+	fmt::println("< ======================================== >");
 	fmt::print(stderr, fg(fmt::color::green), "     ___ ___   _   _____   __\n");
 	fmt::print(stderr, fg(fmt::color::green), "    | _ \\ __| /_\\ |   \\ \\ / /\n");
 	fmt::print(stderr, fg(fmt::color::green), "    |   / _| / _ \\| |) \\ V /\n");
 	fmt::print(stderr, fg(fmt::color::green), "    |_|_\\___/_/ \\_\\___/ |_|\n");
-	fmt::println("               Application port : {}\n", AppPort);
+	fmt::println("Application port : {}\n", AppPort);
 
 	GameData gameData;
-	gameData.state = GameState::WAITING;
+	gameData.state = GameState::LOBBY;
 
 	for (;;)
 	{
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 					player.ready = false;
 					player.name.clear();
 
-					fmt::print(stderr, fg(fmt::color::green), "=>");
+					fmt::print(stderr, fg(fmt::color::green), "[+]");
 					fmt::println(" Player #{} connected", player.index);
 				}
 					break;
@@ -99,13 +99,29 @@ int main(int argc, char* argv[])
 					Player& player = *it;
 					player.peer = nullptr;
 
-					fmt::print(stderr, fg(fmt::color::red), "<=");
-					fmt::println(" Player #{} disconnected", player.index);
+					fmt::print(stderr, fg(fmt::color::red), "[-]");
+
+					if (event.type == ENET_EVENT_TYPE_DISCONNECT_TIMEOUT)
+						fmt::print(" (time out)");
 
 					if (!player.IsPending())
 					{
-						// envoyer aux joueur que ce joueur c'est déconnecté
+						fmt::println(" Player #{} disconnected (aka {})", player.index, player.name);
+
+						// envoyer aux joueur que une joueur c'est déconnecté
+						PlayerDisconnectedPacket disconnectPacket;
+						disconnectPacket.playerIndex = player.index;
+
+						ENetPacket* playerDisconnectPacket = build_packet<PlayerDisconnectedPacket>(disconnectPacket, ENET_PACKET_FLAG_RELIABLE);
+						for (const Player& player : gameData.players)
+						{
+							if(player.peer != nullptr && !player.IsPending())
+								enet_peer_send(player.peer, 0, playerDisconnectPacket);
+						}
 					}
+					else
+						fmt::println(" Player #{} disconnected (no name)", player.index);
+
 				}
 					break;
 
@@ -139,7 +155,7 @@ int main(int argc, char* argv[])
 	for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
 	{
 		if (it->peer != nullptr)
-			enet_peer_disconnect_now(it->peer, 0);
+			enet_peer_disconnect_now(it->peer, (std::uint32_t)DisconnectReport::SERVER_END);
 	}
 
 	enet_deinitialize();
@@ -165,39 +181,43 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 				++playerCount;
 		}
 
-		if (gameData.state != GameState::WAITING || playerCount > MaxPlayerCount)
+		if (gameData.state != GameState::LOBBY || playerCount > MaxPlayerCount)
 		{
 			// Deconnection player
-			enet_peer_disconnect(player.peer, 0);
+			enet_peer_disconnect(player.peer, gameData.state != GameState::LOBBY ? (std::uint32_t)DisconnectReport::GAME_LAUNCHED : (std::uint32_t)DisconnectReport::LOBBY_FULL);
 		}
 		else
 		{
 			// Init player
-			GameDataPacket gameState;
-			gameState.playerIndex = player.index;
-			enet_peer_send(player.peer, 0, build_packet<GameDataPacket>(gameState, ENET_PACKET_FLAG_RELIABLE));
+			ENetPacket* gameDataPacket = build_game_data_packet(gameData, player);
+			enet_peer_send(player.peer, 0, gameDataPacket);
 
 			// Broadcast
-			ENetPacket* playerList = build_player_list_packet(gameData);
+			PlayerConnectPacket playerConnect;
+			playerConnect.playerIndex = player.index;
+			playerConnect.name = player.name;
+			playerConnect.ready = player.ready;
+
+			ENetPacket* connectPacket = build_packet<PlayerConnectPacket>(playerConnect, ENET_PACKET_FLAG_RELIABLE);
 			for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
 			{
-				enet_peer_send(it->peer, 0, playerList);
+				if(it->peer != nullptr && !it->IsPending() && it->index != player.index)
+					enet_peer_send(it->peer, 0, connectPacket);
 			}
 
-			fmt::println("Player #{} ({}) initialize", player.index, player.name);
+			fmt::print(stderr, fg(fmt::color::green), "Player #{} (aka {}) successfully initialized\n", player.index, player.name);
 		}
 	}
 		break;
 
 	case Opcode::C_PlayerReady:
 	{
-		PlayerReadyPacket playerReady = PlayerReadyPacket::Deserialize(message, offset);
-
-		player.ready = playerReady.ready;
-
 		// vérifier si le jeu n'a pas commencer
-		if (gameData.state == GameState::WAITING)
+		if (gameData.state == GameState::LOBBY)
 		{
+			PlayerReadyPacket playerReady = PlayerReadyPacket::Deserialize(message, offset);
+			player.ready = playerReady.ready;
+
 			bool allReady = true;
 			int playerCount = 0;
 			// vérifier si tout les joueurs son pret
@@ -222,7 +242,10 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 				for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
 				{
 					if (it->peer != nullptr && it->IsPending())
-						enet_peer_disconnect(it->peer, 0);
+					{
+						enet_peer_disconnect(it->peer, (std::uint32_t)DisconnectReport::KICK);
+						fmt::print(stderr, fg(fmt::color::red), "Player #{} kicked (not initialized)\n", player.index);
+					}
 				}
 
 				ENetPacket* packet = build_running_state_packet(gameData);
@@ -230,6 +253,19 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 				{
 					if (player.peer != nullptr && !player.IsPending())
 						enet_peer_send(player.peer, 0, packet);
+				}
+			}
+			else
+			{
+				ReadyPacket readyPacket;
+				readyPacket.playerIndex = player.index;
+				readyPacket.ready = player.ready;
+
+				ENetPacket* packet = build_packet<ReadyPacket>(readyPacket, ENET_PACKET_FLAG_RELIABLE);
+				for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
+				{
+					if (it->peer != nullptr && !it->IsPending())
+						enet_peer_send(it->peer, 0, packet);
 				}
 			}
 		}
@@ -241,21 +277,22 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 		PlayerInputPacket playerInputs = PlayerInputPacket::Deserialize(message, offset);
 
 		// Traitement input
-
 	}
 		break;
 	}
 }
 
-ENetPacket* build_player_list_packet(GameData gameData)
+ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer)
 {
-	PlayerListPacket packet;
+	GameDataPacket packet;
+
+	packet.targetPlayerIndex = targetPlayer.index;
 	for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
 	{
 		if (it->peer == nullptr || it->IsPending())
 			continue;
 
-		PlayerListPacket::PlayerPacketData player;
+		GameDataPacket::PlayerPacketData player;
 		player.index = it->index;
 		player.name = it->name;
 		player.ready = it->ready;
@@ -263,7 +300,7 @@ ENetPacket* build_player_list_packet(GameData gameData)
 		packet.playerList.push_back(player);
 	}
 
-	return build_packet<PlayerListPacket>(packet, ENET_PACKET_FLAG_RELIABLE);
+	return build_packet<GameDataPacket>(packet, ENET_PACKET_FLAG_RELIABLE);
 }
 
 ENetPacket* build_running_state_packet(GameData gameData)

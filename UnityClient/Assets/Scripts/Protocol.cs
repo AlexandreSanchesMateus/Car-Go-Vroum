@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Net;
 using System.Text;
+using ENet6;
+using Unity.VisualScripting;
+using System.Reflection.Emit;
 
 
 namespace NetworkProtocol
@@ -15,16 +18,33 @@ namespace NetworkProtocol
         C_PlayerInputs,
 
         S_GameData,
-        S_PlayerList,
+        S_PlayerConnected,
+        S_PlayerDisconnected,
+        S_Ready,
     }
 
-    public class PlayerNamePacket
+    public enum DisconnectReport : UInt32
     {
-        public const EOpcode Opcode = EOpcode.C_PlayerName;
+        DISCONNECTED,
+        SERVER_END,
+	    KICK,
+	    LOBBY_FULL,
+	    GAME_LAUNCHED
+    };
+
+    public abstract class BasePacket
+    {
+        public EOpcode Opcode { get; protected set; }
+        public abstract void Serialize(List<byte> byteArray);
+    }
+
+    public class PlayerNamePacket : BasePacket
+    {
+        public PlayerNamePacket() { Opcode = EOpcode.C_PlayerName; }
 
         public string name;
 
-        public void Serialize(List<byte> byteArray)
+        public override void Serialize(List<byte> byteArray)
         {
             Serializer.Serialize_str(byteArray, name);
         }
@@ -38,13 +58,13 @@ namespace NetworkProtocol
         }
     }
 
-    public class PlayerReadyPacket
+    public class PlayerReadyPacket : BasePacket
     {
-        public const EOpcode opcode = EOpcode.C_PlayerReady;
+        public PlayerReadyPacket() { Opcode = EOpcode.C_PlayerReady; }
 
         public bool ready;
 
-        public void Serialize(List<byte> byteArray)
+        public override void Serialize(List<byte> byteArray)
         {
             byte octet = (byte)(ready ? 1 : 0);
             Serializer.Serialize_uByte(byteArray, octet);
@@ -59,13 +79,13 @@ namespace NetworkProtocol
         }
     }
 
-    public class PlayerInputPacket
+    public class PlayerInputPacket : BasePacket
     {
-        public const EOpcode opcode = EOpcode.C_PlayerInputs;
+        public PlayerInputPacket() { Opcode = EOpcode.C_PlayerInputs; }
 
-        PlayerInput inputs;
+        public PlayerInput inputs = new PlayerInput();
 
-        public void Serialize(List<byte> byteArray)
+        public override void Serialize(List<byte> byteArray)
         {
             Serializer.Serialize_float(byteArray, inputs.acceleration);
             Serializer.Serialize_float(byteArray, inputs.steer);
@@ -86,35 +106,107 @@ namespace NetworkProtocol
         }
     }
 
-    public class PlayerListPacket
+    public class PlayerConnectPacket : BasePacket
     {
-        public const EOpcode opcode = EOpcode.S_PlayerList;
+        public PlayerConnectPacket() {  Opcode = EOpcode.S_PlayerConnected; }
+
+        public UInt16 playerIndex;
+        public string name;
+        public bool ready;
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_u16(byteArray, playerIndex);
+            Serializer.Serialize_str(byteArray, name);
+            Serializer.Serialize_uByte(byteArray, (byte)(ready ? 1 : 0));
+        }
+
+        public static PlayerConnectPacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            PlayerConnectPacket packet = new PlayerConnectPacket();
+            packet.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
+            packet.name = Serializer.Deserialize_str(byteArray, ref offset);
+            packet.ready = Serializer.Deserialize_uByte(byteArray, ref offset) == 1;
+
+            return packet;
+        }
+    }
+
+    public class PlayerDisconnectedPacket : BasePacket
+    {
+        public PlayerDisconnectedPacket() { Opcode= EOpcode.S_PlayerDisconnected; }
+
+        public UInt16 playerIndex;
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_u16(byteArray, playerIndex);
+        }
+
+        public static PlayerDisconnectedPacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            PlayerDisconnectedPacket packet = new PlayerDisconnectedPacket();
+            packet.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
+
+            return packet;
+        }
+    }
+
+    public class ReadyPacket : BasePacket
+    {
+        public ReadyPacket() { Opcode= EOpcode.S_Ready;}
+
+        public UInt16 playerIndex;
+        public bool ready;
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_u16(byteArray, playerIndex);
+            Serializer.Serialize_uByte(byteArray, (byte)(ready ? 1 : 0));
+        }
+
+        public static ReadyPacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            ReadyPacket packet = new ReadyPacket();
+            packet.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
+            packet.ready = Serializer.Deserialize_uByte(byteArray, ref offset) == 1;
+
+            return packet;
+        }
+    }
+
+    public class GameDataPacket : BasePacket
+    {
+        public GameDataPacket() { Opcode = EOpcode.S_GameData; }
 
         public struct PlayerPacketData
         {
-            public int index;
+            public UInt16 index;
             public string name;
             public bool ready;
         };
 
-        public List<PlayerPacketData> playerList;
+        public UInt16 targetPlayerIndex;
+        public List<PlayerPacketData> playerList = new List<PlayerPacketData>();
 
-        public void Serialize(List<byte> byteArray)
+        public override void Serialize(List<byte> byteArray)
         {
+            Serializer.Serialize_u16(byteArray, targetPlayerIndex);
             Serializer.Serialize_uByte(byteArray, (byte)playerList.Count);
 
-            foreach(PlayerPacketData data in playerList)
+            foreach (PlayerPacketData data in playerList)
             {
-                Serializer.Serialize_u16(byteArray, (UInt16)data.index);
+                Serializer.Serialize_u16(byteArray, data.index);
                 Serializer.Serialize_str(byteArray, data.name);
                 byte octet = (byte)(data.ready ? 1 : 0);
                 Serializer.Serialize_uByte(byteArray, octet);
             }
         }
 
-        public static PlayerListPacket Deserialize(List<byte> byteArray, ref int offset)
+        public static GameDataPacket Deserialize(List<byte> byteArray, ref int offset)
         {
-            PlayerListPacket packet = new PlayerListPacket();
+            GameDataPacket packet = new GameDataPacket();
+            packet.targetPlayerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
 
             int count = Serializer.Deserialize_uByte(byteArray, ref offset);
             for (int i = 0; i < count; ++i)
@@ -135,10 +227,13 @@ namespace NetworkProtocol
     {
         public static void Serialize_str(List<byte> byteArray, string str)
         {
-            Serialize_u32(byteArray, (UInt32)str.Length);
-
             if (!string.IsNullOrEmpty(str))
+            {
+                Serialize_u32(byteArray, (UInt32)str.Length);
                 byteArray.AddRange(Encoding.UTF8.GetBytes(str));
+            }
+            else
+                Serialize_u32(byteArray, 0);
         }
 
         public static void Serialize_float(List<byte> byteArray, float value)
@@ -181,10 +276,15 @@ namespace NetworkProtocol
         public static string Deserialize_str(List<byte> byteArray, ref int offset)
         {
             int strSize = (Int32)Deserialize_u32(byteArray, ref offset);
-            string str = Encoding.UTF8.GetString(byteArray.ToArray(), offset, strSize);
-            offset += strSize;
 
-            return str;
+            if(strSize != 0)
+            {
+                string str = Encoding.UTF8.GetString(byteArray.ToArray(), offset, strSize);
+                offset += strSize;
+                return str;
+            }
+
+            return "";
         }
 
         public static float Deserialize_float(List<byte> byteArray, ref int offset)

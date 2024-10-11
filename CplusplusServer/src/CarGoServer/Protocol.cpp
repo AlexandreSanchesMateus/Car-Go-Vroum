@@ -223,8 +223,7 @@ PlayerNamePacket PlayerNamePacket::Deserialize(const std::vector<std::uint8_t>& 
 
 void PlayerReadyPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
-	std::uint8_t byte = ready ? 1 : 0;
-	Serialize_u8(byteArray, byte);
+	Serialize_u8(byteArray, ready ? 1 : 0);
 }
 
 PlayerReadyPacket PlayerReadyPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
@@ -239,9 +238,7 @@ void PlayerInputPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
 	Serialize_f32(byteArray, inputs.acceleration);
 	Serialize_f32(byteArray, inputs.steer);
-
-	std::uint8_t byte = inputs.brake ? 1 : 0;
-	Serialize_u8(byteArray, byte);
+	Serialize_u8(byteArray, inputs.brake ? 1 : 0);
 }
 
 PlayerInputPacket PlayerInputPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
@@ -254,40 +251,74 @@ PlayerInputPacket PlayerInputPacket::Deserialize(const std::vector<std::uint8_t>
 	return packet;
 }
 
-void GameDataPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
+void PlayerConnectPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
+{
+	Serialize_u16(byteArray, playerIndex);
+	Serialize_str(byteArray, name);
+	Serialize_u8(byteArray, ready ? 1 : 0);
+}
+
+PlayerConnectPacket PlayerConnectPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
+{
+	PlayerConnectPacket packet;
+	packet.playerIndex = Deserialize_u16(byteArray, offset);
+	packet.name = Deserialize_str(byteArray, offset);
+	packet.ready = Deserialize_u8(byteArray, offset) == 1;
+
+	return packet;
+}
+
+void PlayerDisconnectedPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
 	Serialize_u16(byteArray, playerIndex);
 }
 
-GameDataPacket GameDataPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
+PlayerDisconnectedPacket PlayerDisconnectedPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
 {
-	GameDataPacket packet;
+	PlayerDisconnectedPacket packet;
 	packet.playerIndex = Deserialize_u16(byteArray, offset);
 
 	return packet;
 }
 
-void PlayerListPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
+void ReadyPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
+	Serialize_u16(byteArray, playerIndex);
+	Serialize_u8(byteArray, ready ? 1 : 0);
+}
+
+ReadyPacket ReadyPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
+{
+	ReadyPacket packet;
+	packet.playerIndex = Deserialize_u16(byteArray, offset);
+	packet.ready = Deserialize_u8(byteArray, offset) == 1;
+
+	return packet;
+}
+
+void GameDataPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
+{
+	Serialize_u16(byteArray, targetPlayerIndex);
 	Serialize_u8(byteArray, playerList.size());
 
-	for (const PlayerListPacket::PlayerPacketData& data : playerList)
+	for (const GameDataPacket::PlayerPacketData& data : playerList)
 	{
 		Serialize_u16(byteArray, data.index);
 		Serialize_str(byteArray, data.name);
-		std::uint8_t byte = data.ready ? 1 : 0;
-		Serialize_u8(byteArray, byte);
+		Serialize_u8(byteArray, data.ready ? 1 : 0);
 	}
 }
 
-PlayerListPacket PlayerListPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
+GameDataPacket GameDataPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
 {
-	PlayerListPacket packet;
+	GameDataPacket packet;
+	packet.targetPlayerIndex = Deserialize_u16(byteArray, offset);
+
 	std::uint8_t size = Deserialize_u8(byteArray, offset);
 
 	for (int i = 0; i < size; ++i)
 	{
-		PlayerListPacket::PlayerPacketData player;
+		GameDataPacket::PlayerPacketData player;
 		player.index = Deserialize_u16(byteArray, offset);
 		player.name = Deserialize_str(byteArray, offset);
 		player.ready = Deserialize_u8(byteArray, offset) == 1;

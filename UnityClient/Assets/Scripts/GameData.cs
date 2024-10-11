@@ -6,9 +6,10 @@ public class GameData
 {
     public enum GameState
     {
-        WAITING,         // attendre que tout les joueurs soient prets
-        RUNNING,         // la partie est en cours
-        FINISHED         // une des deux équipes a gagné
+        LOBBY,
+        WAITING_GAME_START,
+        GAME_STARTED,
+        GAME_FINISHED
     }
 
     public GameState state;
