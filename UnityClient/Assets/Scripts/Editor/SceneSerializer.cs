@@ -12,23 +12,23 @@ public class SceneSerializer : EditorWindow
     public static void SerializeScene()
     {
         Scene scene = SceneManager.GetActiveScene();
-        MeshFilter[] meshFilterList = FindObjectsOfType<MeshFilter>();
+        Collider[] colliders = FindObjectsOfType<Collider>();
         SceneData sceneData = new SceneData();
-        foreach (var meshFilter in meshFilterList)
+        foreach (var collider in colliders)
         {
-            switch (meshFilter.GetComponent<Collider>())
+            switch (collider)
             {
                 case SphereCollider:
-                    sceneData.SceneObjects.Add(SphereToData(meshFilter.gameObject));
+                    sceneData.SceneObjects.Add(SphereToData(collider.gameObject));
                     break;
                 case BoxCollider:
-                    sceneData.SceneObjects.Add(BoxToData(meshFilter.gameObject));
+                    sceneData.SceneObjects.Add(BoxToData(collider.gameObject));
                     break;
                 case CapsuleCollider:
-                    sceneData.SceneObjects.Add(CapsuleToData(meshFilter.gameObject));
+                    sceneData.SceneObjects.Add(CapsuleToData(collider.gameObject));
                     break;
                 case MeshCollider:
-                    sceneData.SceneObjects.Add(MeshToData(meshFilter.sharedMesh));
+                    sceneData.SceneObjects.Add(MeshToData(collider.gameObject));
                     break;
             }
                 
@@ -90,20 +90,22 @@ public class SceneSerializer : EditorWindow
         };
     }
 
-    static MeshObject MeshToData(Mesh mesh)
+    static MeshObject MeshToData(GameObject obj)
     {
-        Float3[] vertices = new Float3[mesh.vertices.Length];
+        MeshCollider meshCollider = obj.GetComponent<MeshCollider>();
         
-        for (int i = 0; i < mesh.vertices.Length; i++)
+        Float3[] vertices = new Float3[meshCollider.sharedMesh.vertices.Length];
+        
+        for (int i = 0; i < meshCollider.sharedMesh.vertices.Length; i++)
         {
-            vertices[i] = mesh.vertices[i].ToFloat3();
+            vertices[i] = meshCollider.sharedMesh.vertices[i].ToFloat3();
         }
         
         return new MeshObject
         {
             Type = "mesh",
             vertices = vertices,
-            triangles =  mesh.triangles
+            triangles =  meshCollider.sharedMesh.triangles
         };
     }
 }
