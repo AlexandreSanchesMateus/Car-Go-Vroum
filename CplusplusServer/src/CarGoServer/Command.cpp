@@ -23,6 +23,9 @@ std::optional<Command::Report> Command::HandleEvent()
 	if (_kbhit())
 	{
 		char c = _getch();
+		if (c < 0)
+			return std::nullopt;
+
 		fmt::print("{}", c);
 
 		if (c == '\b')

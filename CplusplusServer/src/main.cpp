@@ -49,7 +49,7 @@ int main()
 	}
 
 	fmt::print("    => ");
-	fmt::print(stderr, fg(fmt::color::green), "ENet host create\n\n");
+	fmt::print(stderr, fg(fmt::color::green), "ENet host created\n\n");
 
 	fmt::println("< ======================================== >");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "     ___ ___   _   _____   __\n");
@@ -199,7 +199,7 @@ int main()
 	}
 
 	enet_deinitialize();
-	fmt::println("\r \nENet Deinitialized\n");
+	fmt::print(stderr, fg(fmt::color::green), "\r \nENet Deinitialized\n");
 
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), " ___            _\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "| _ )_  _ ___  | |__ _  _ ___\n");
