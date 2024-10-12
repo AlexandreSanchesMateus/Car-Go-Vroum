@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CarGoServer/PlayerInput.hpp"
 #include <cstdint>
@@ -158,10 +158,10 @@ std::uint16_t Deserialize_u16(const std::vector<std::uint8_t>& byteArray, std::s
 std::uint32_t Deserialize_u32(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
 std::string Deserialize_str(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
 
-// Petite fonction d'aide pour construire un packet ENet à partir d'une de nos structures de packet, insère automatiquement l'opcode au début des données
+// Petite fonction d'aide pour construire un packet ENet Ã  partir d'une de nos structures de packet, insÃ¨re automatiquement l'opcode au dÃ©but des donnÃ©es
 template<typename T> ENetPacket* build_packet(const T& packet, enet_uint32 flags)
 {
-	// On sérialise l'opcode puis le contenu du packet dans un std::vector<std::uint8_t>
+	// On sÃ©rialise l'opcode puis le contenu du packet dans un std::vector<std::uint8_t>
 	std::vector<std::uint8_t> byteArray;
 
 	Serialize_u8(byteArray, static_cast<std::uint8_t>(T::opcode));

@@ -1,7 +1,8 @@
-#include "CarGoServer/Constant.hpp"
+ï»¿#include "CarGoServer/Constant.hpp"
 #include "CarGoServer/Protocol.hpp"
 #include "CarGoServer/PlayerData.hpp"
 #include "CarGoServer/GameData.hpp"
+#include "CarGoServer/Command.hpp"
 #include <fmt/core.h>
 #include <fmt/color.h>
 #include <enet6/enet.h>
@@ -11,10 +12,11 @@
 
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData);
+void PurgePlayers(const GameData& gameData);
 ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(GameData gameData);
 
-int main(int argc, char* argv[])
+int main()
 {
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "   _________    ____        __________     _____ __________ _    ____________\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "  / ____/   |  / __ \\      / ____/ __ \\   / ___// ____/ __ \\ |  / / ____/ __ \\\n");
@@ -34,7 +36,7 @@ int main(int argc, char* argv[])
 	fmt::print("    => ");
 	fmt::print(stderr, fg(fmt::color::green), "ENet Initialized\n");
 
-	// Création de l'hôte serveur
+	// CrÃ©ation de l'hÃ´te serveur
 	ENetAddress address;
 	enet_address_build_any(&address, ENET_ADDRESS_TYPE_IPV6);
 	address.port = AppPort;
@@ -50,16 +52,19 @@ int main(int argc, char* argv[])
 	fmt::print(stderr, fg(fmt::color::green), "ENet host create\n\n");
 
 	fmt::println("< ======================================== >");
-	fmt::print(stderr, fg(fmt::color::green), "     ___ ___   _   _____   __\n");
-	fmt::print(stderr, fg(fmt::color::green), "    | _ \\ __| /_\\ |   \\ \\ / /\n");
-	fmt::print(stderr, fg(fmt::color::green), "    |   / _| / _ \\| |) \\ V /\n");
-	fmt::print(stderr, fg(fmt::color::green), "    |_|_\\___/_/ \\_\\___/ |_|\n");
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), "     ___ ___   _   _____   __\n");
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), "    | _ \\ __| /_\\ |   \\ \\ / /\n");
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), "    |   / _| / _ \\| |) \\ V /\n");
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), "    |_|_\\___/_/ \\_\\___/ |_|\n");
 	fmt::println("Application port : {}\n", AppPort);
+
+	Command cmdPrompt;
 
 	GameData gameData;
 	gameData.state = GameState::LOBBY;
 
-	for (;;)
+	bool serverOpen = true;
+	while (serverOpen)
 	{
 		ENetEvent event;
 		if (enet_host_service(host, &event, 1) > 0)
@@ -84,8 +89,10 @@ int main(int argc, char* argv[])
 					player.ready = false;
 					player.name.clear();
 
+					cmdPrompt.ClearLastPrompt();
 					fmt::print(stderr, fg(fmt::color::green), "[+]");
 					fmt::println(" Player #{} connected", player.index);
+					cmdPrompt.RecoverLastPrompt();
 				}
 					break;
 
@@ -99,6 +106,7 @@ int main(int argc, char* argv[])
 					Player& player = *it;
 					player.peer = nullptr;
 
+					cmdPrompt.ClearLastPrompt();
 					fmt::print(stderr, fg(fmt::color::red), "[-]");
 
 					if (event.type == ENET_EVENT_TYPE_DISCONNECT_TIMEOUT)
@@ -108,20 +116,21 @@ int main(int argc, char* argv[])
 					{
 						fmt::println(" Player #{} disconnected (aka {})", player.index, player.name);
 
-						// envoyer aux joueur que une joueur c'est déconnecté
+						// envoyer aux joueur que une joueur c'est dÃ©connectÃ©
 						PlayerDisconnectedPacket disconnectPacket;
 						disconnectPacket.playerIndex = player.index;
 
 						ENetPacket* playerDisconnectPacket = build_packet<PlayerDisconnectedPacket>(disconnectPacket, ENET_PACKET_FLAG_RELIABLE);
-						for (const Player& player : gameData.players)
+						for (const Player& other : gameData.players)
 						{
-							if(player.peer != nullptr && !player.IsPending())
-								enet_peer_send(player.peer, 0, playerDisconnectPacket);
+							if(other.peer != nullptr && !other.IsPending())
+								enet_peer_send(other.peer, 0, playerDisconnectPacket);
 						}
 					}
 					else
 						fmt::println(" Player #{} disconnected (no name)", player.index);
 
+					cmdPrompt.RecoverLastPrompt();
 				}
 					break;
 
@@ -133,7 +142,7 @@ int main(int argc, char* argv[])
 					
 					Player& player = *it;
 
-					// On gère le message qu'on a reçu
+					// On gÃ¨re le message qu'on a reÃ§u
 					std::vector<std::uint8_t> content(event.packet->dataLength);
 					std::memcpy(content.data(), event.packet->data, event.packet->dataLength);
 
@@ -143,10 +152,41 @@ int main(int argc, char* argv[])
 					break;
 
 				case ENET_EVENT_TYPE_NONE:
+					cmdPrompt.ClearLastPrompt();
 					fmt::print(stderr, fg(fmt::color::yellow), "Enet event type : unexpected event\n");
+					cmdPrompt.RecoverLastPrompt();
 					break;
 				}
 			} while (enet_host_check_events(host, &event) > 0);
+		}
+
+		std::optional<Command::Report> commandReport = cmdPrompt.HandleEvent();
+		if (commandReport)
+		{
+			switch (commandReport->action)
+			{
+			case Command::Action::Purge:
+				PurgePlayers(gameData);
+				break;
+
+			case Command::Action::Kick:
+			{
+				auto it = std::find_if(gameData.players.begin(), gameData.players.end(), [&commandReport](const Player& other) {return commandReport->params == other.index; });
+				if (it != gameData.players.end())
+					enet_peer_disconnect(it->peer, (std::uint32_t)DisconnectReport::KICK);
+				else
+				{
+					fmt::print(stderr, fg(fmt::color::yellow), "\r[SERV REPLY]");
+					fmt::println(" No player found with #{} as id", commandReport->params);
+					cmdPrompt.RecoverLastPrompt();
+				}
+				break;
+			}
+
+			case Command::Action::Close:
+				serverOpen = false;
+				continue;
+			}
 		}
 
 		// Tick logique
@@ -159,6 +199,13 @@ int main(int argc, char* argv[])
 	}
 
 	enet_deinitialize();
+	fmt::println("\r \nENet Deinitialized\n");
+
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), " ___            _\n");
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), "| _ )_  _ ___  | |__ _  _ ___\n");
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), "| _ \\ || / -_) | '_ \\ || / -_)\n");
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), "|___/\\_, \\___| |_.__/\\_, \\___|\n");
+	fmt::print(stderr, fg(fmt::color::medium_spring_green), "     |__/            |__/\n");
 
 	return EXIT_SUCCESS;
 }
@@ -212,7 +259,7 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 
 	case Opcode::C_PlayerReady:
 	{
-		// vérifier si le jeu n'a pas commencer
+		// vÃ©rifier si le jeu n'a pas commencer
 		if (gameData.state == GameState::LOBBY)
 		{
 			PlayerReadyPacket playerReady = PlayerReadyPacket::Deserialize(message, offset);
@@ -220,7 +267,7 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 
 			bool allReady = true;
 			int playerCount = 0;
-			// vérifier si tout les joueurs son pret
+			// vÃ©rifier si tout les joueurs son pret
 			for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
 			{
 				if (it->peer == nullptr || it->IsPending())
@@ -239,20 +286,13 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 			{
 				// init world
 
-				for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
-				{
-					if (it->peer != nullptr && it->IsPending())
-					{
-						enet_peer_disconnect(it->peer, (std::uint32_t)DisconnectReport::KICK);
-						fmt::print(stderr, fg(fmt::color::red), "Player #{} kicked (not initialized)\n", player.index);
-					}
-				}
+				PurgePlayers(gameData);
 
 				ENetPacket* packet = build_running_state_packet(gameData);
-				for (const Player& player : gameData.players)
+				for (const Player& other : gameData.players)
 				{
-					if (player.peer != nullptr && !player.IsPending())
-						enet_peer_send(player.peer, 0, packet);
+					if (other.peer != nullptr && !other.IsPending())
+						enet_peer_send(other.peer, 0, packet);
 				}
 			}
 			else
@@ -279,6 +319,18 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 		// Traitement input
 	}
 		break;
+	}
+}
+
+void PurgePlayers(const GameData& gameData)
+{
+	for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
+	{
+		if (it->peer != nullptr && it->IsPending())
+		{
+			enet_peer_disconnect(it->peer, (std::uint32_t)DisconnectReport::KICK);
+			fmt::print(stderr, fg(fmt::color::red), "Player #{} kicked (not initialized)\n", it->index);
+		}
 	}
 }
 

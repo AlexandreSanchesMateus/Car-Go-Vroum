@@ -3,7 +3,7 @@ add_rules("plugin.vsxmake.autoupdate")
 
 add_requires("fmt")
 add_requires("enet6", { configs = { debug = is_mode("debug") }})
-add_requires("vcpkg::physx", { alias = "physx", configs = { shared = true }})
+--add_requires("vcpkg::physx", { alias = "physx", configs = { shared = true }})
 add_requires("nlohmann_json") 
 
 set_project("CarGoServer")
