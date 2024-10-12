@@ -1,7 +1,7 @@
 add_rules("mode.asan", "mode.debug", "mode.releasedbg")
 add_rules("plugin.vsxmake.autoupdate")
 
-add_requires("fmt")
+add_requires("fmt", "sfml")
 add_requires("enet6", { configs = { debug = is_mode("debug") }})
 add_requires("vcpkg::physx", { alias = "physx", configs = { shared = true }})
 add_requires("nlohmann_json") 
@@ -44,6 +44,20 @@ target("CarGoServer")
 
     add_headerfiles("include/CarGoServer/**.hpp")
     add_files("src/**.cpp")
-    add_packages("enet6", "fmt", "physx", "nlohmann_json")
+    add_packages("enet6", "fmt", "physx", "nlohmann_json", "sfml")
     add_defines("SERVER_BUILD")
+    
+    on_config(function (target)
+        local physx = target:pkg("physx")
+        local baseincludedir = table.wrap(physx:get("sysincludedirs"))[1]
+        for _, dir in ipairs(os.dirs(path.join(baseincludedir, "*"))) do
+            target:add("sysincludedirs", dir)
+        end
+    end)
 
+    -- if is_mode("debug") then
+    --     add_defines("DEBUG")
+    --     set_optimize("none")
+    -- else
+    --     set_optimize("fastest")
+    -- end

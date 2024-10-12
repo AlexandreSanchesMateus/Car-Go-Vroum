@@ -1,3 +1,6 @@
+#ifndef _DEBUG
+#define _DEBUG
+
 #include "CarGoServer/Constant.hpp"
 #include "CarGoServer/Protocol.hpp"
 #include "CarGoServer/PlayerData.hpp"
@@ -8,11 +11,19 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <physx/PxPhysicsAPI.h>
+using namespace physx;
 
+#include <nlohmann/json.hpp>
+
+#include <iostream>
+#include <fstream>
+#include <CarGoServer/MapData.hpp>
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData);
 ENetPacket* build_player_list_packet(GameData gameData);
 ENetPacket* build_running_state_packet(GameData gameData);
+void UnserializeMap(std::string mapPath);
 
 int main(int argc, char* argv[])
 {
@@ -22,6 +33,25 @@ int main(int argc, char* argv[])
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "/ /___/ ___ |/ _, _/_____/ /_/ / /_/ /   ___/ / /___/ _, _/| |/ / /___/ _, _/\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "\\____/_/  |_/_/ |_|      \\____/\\____/   /____/_____/_/ |_| |___/_____/_/ |_|\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "                                                             by Alexandre SM & Timothe L\n");
+
+
+	static PxDefaultErrorCallback gDefaultErrorCallback;
+	static PxDefaultAllocator gDefaultAllocatorCallback;
+
+	PxFoundation* foundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocatorCallback, gDefaultErrorCallback);
+	if (!foundation) {
+		printf("Failed to create PhysX Foundation\n");
+		return -1;
+	}
+
+	PxPhysics* physics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation, PxTolerancesScale(), true, nullptr);
+	if (!physics) {
+		printf("Failed to create PhysX Physics\n");
+		return -1;
+	}
+
+	UnserializeMap("assets/map.json");
+
 
 	fmt::println("\nInitialization ...");
 
@@ -143,6 +173,10 @@ int main(int argc, char* argv[])
 	}
 
 	enet_deinitialize();
+
+	// Nettoyer la mémoire
+	physics->release();
+	foundation->release();
 
 	return EXIT_SUCCESS;
 }
@@ -284,3 +318,30 @@ ENetPacket* build_running_state_packet(GameData gameData)
 
 	return build_packet<GameStateRunningPacket>(packet, ENET_PACKET_FLAG_RELIABLE);
 }
+
+
+void UnserializeMap(std::string mapPath) {
+	std::ifstream file(mapPath);
+
+	nlohmann::json data;
+	try {
+		data = nlohmann::json::parse(file);
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Erreur lors de l'analyse du fichier JSON: " << e.what() << std::endl;
+		return;
+	}
+
+	std::cout << "Données JSON chargées: " << data.dump(4) << std::endl; // Affichage de manière lisible
+
+	// Désérialiser en MapData
+	MapData mapData;
+	mapData.from_json(data);
+
+	// Optionnel: Affiche les objets physiques chargés
+	for (const auto& obj : mapData.physicObjects) {
+		std::cout << "Objet chargé de type: " << obj->Type << std::endl;
+	}
+}
+
+#endif
