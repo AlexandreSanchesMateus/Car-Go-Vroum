@@ -284,9 +284,9 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 
 			if (allReady && playerCount >= MinPlayerCount)
 			{
-				// init world
-
 				PurgePlayers(gameData);
+
+				// init world
 
 				ENetPacket* packet = build_running_state_packet(gameData);
 				for (const Player& other : gameData.players)

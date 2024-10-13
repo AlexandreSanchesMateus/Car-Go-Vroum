@@ -238,7 +238,15 @@ void PlayerInputPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
 	Serialize_f32(byteArray, inputs.acceleration);
 	Serialize_f32(byteArray, inputs.steer);
-	Serialize_u8(byteArray, inputs.brake ? 1 : 0);
+
+	std::uint8_t inputByte = 0;
+	if (inputs.brake)
+		inputByte |= 0b1;
+
+	if (inputs.softRecover)
+		inputByte |= 0b10;
+
+	Serialize_u8(byteArray, inputByte);
 }
 
 PlayerInputPacket PlayerInputPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
@@ -246,7 +254,10 @@ PlayerInputPacket PlayerInputPacket::Deserialize(const std::vector<std::uint8_t>
 	PlayerInputPacket packet;
 	packet.inputs.acceleration = Deserialize_f32(byteArray, offset);
 	packet.inputs.steer = Deserialize_f32(byteArray, offset);
-	packet.inputs.brake = Deserialize_u8(byteArray, offset) == 1;
+
+	std::uint8_t inputByte = Deserialize_u8(byteArray, offset);
+	packet.inputs.brake = (inputByte & 0b1) != 0;
+	packet.inputs.softRecover = (inputByte & 0b10) != 0;
 
 	return packet;
 }
@@ -356,6 +367,170 @@ GameStateRunningPacket GameStateRunningPacket::Deserialize(const std::vector<std
 
 		packet.playersState.push_back(state);
 	}
+
+	return packet;
+}
+
+void PlayersStatePacket::Serialize(std::vector<std::uint8_t>& byteArray) const
+{
+	Serialize_u8(byteArray, otherPlayersState.size());
+
+	for (const PlayerState player : otherPlayersState)
+	{
+		Serialize_u16(byteArray, player.playerIndex);
+
+		// input
+		Serialize_f32(byteArray, player.inputs.acceleration);
+		Serialize_f32(byteArray, player.inputs.steer);
+
+		std::uint8_t inputByte = 0;
+		if (player.inputs.brake)
+			inputByte |= 0b1;
+
+		if (player.inputs.softRecover)
+			inputByte |= 0b10;
+
+		Serialize_u8(byteArray, inputByte);
+
+		/*
+		// position
+		Serialize_f32(byteArray, player.position.x);
+		Serialize_f32(byteArray, player.position.y);
+		Serialize_f32(byteArray, player.position.z);
+
+		// rotation
+		Serialize_f32(byteArray, player.rotation.x);
+		Serialize_f32(byteArray, player.rotation.y);
+		Serialize_f32(byteArray, player.rotation.z);
+		Serialize_f32(byteArray, player.rotation.w);
+
+		// velocity
+		Serialize_u8(byteArray, atRest ? 1 : 0);
+		if (!atRest)
+		{
+			// linear
+			Serialize_f32(byteArray, player.linearVelocity.x);
+			Serialize_f32(byteArray, player.linearVelocity.y);
+			Serialize_f32(byteArray, player.linearVelocity.z);
+
+			// angular
+			Serialize_f32(byteArray, player.angularVelocity.x);
+			Serialize_f32(byteArray, player.angularVelocity.y);
+			Serialize_f32(byteArray, player.angularVelocity.z);
+		}
+		*/
+	}
+
+	/*
+	// Prediction / Reconciliation
+	Serialize_u16(byteArray, inputIndex);
+
+	// position
+	Serialize_f32(byteArray, player.position.x);
+	Serialize_f32(byteArray, player.position.y);
+	Serialize_f32(byteArray, player.position.z);
+
+	// rotation
+	Serialize_f32(byteArray, player.rotation.x);
+	Serialize_f32(byteArray, player.rotation.y);
+	Serialize_f32(byteArray, player.rotation.z);
+	Serialize_f32(byteArray, player.rotation.w);
+
+	// velocity
+	Serialize_u8(byteArray, localAtRest ? 0 : 1);
+	if (!localAtRest)
+	{
+		// linear
+		Serialize_f32(byteArray, player.linearVelocity.x);
+		Serialize_f32(byteArray, player.linearVelocity.y);
+		Serialize_f32(byteArray, player.linearVelocity.z);
+
+		// angular
+		Serialize_f32(byteArray, player.angularVelocity.x);
+		Serialize_f32(byteArray, player.angularVelocity.y);
+		Serialize_f32(byteArray, player.angularVelocity.z);
+	}
+	*/
+}
+
+PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
+{
+	PlayersStatePacket packet;
+
+	std::uint8_t size = Deserialize_u8(byteArray, offset);
+	for (int i = 0; i < size; ++i)
+	{
+		PlayerState player;
+		player.playerIndex = Deserialize_u16(byteArray, offset);
+
+		// input
+		player.inputs.acceleration = Deserialize_f32(byteArray, offset);
+		player.inputs.steer = Deserialize_f32(byteArray, offset);
+
+		std::uint8_t inputByte = Deserialize_u8(byteArray, offset);
+		player.inputs.brake = (inputByte & 0b1) != 0;
+		player.inputs.softRecover = (inputByte & 0b10) != 0;
+
+		/*
+		player.position.x = Deserialize_f32(byteArray, offset);
+		player.position.y = Deserialize_f32(byteArray, offset);
+		player.position.z = Deserialize_f32(byteArray, offset);
+
+		player.rotation.x = Deserialize_f32(byteArray, offset);
+		player.rotation.y = Deserialize_f32(byteArray, offset);
+		player.rotation.z = Deserialize_f32(byteArray, offset);
+		player.rotation.w = Deserialize_f32(byteArray, offset);
+
+		player.atRest = Deserialize_u8(byteArray, offset) == 1;
+		if (player.atRest)
+		{
+			player.linearVelocity(PxZERO);
+			player.angularVelocity(PxZERO);
+		}
+		else
+		{
+			player.linearVelocity.x = Deserialize_f32(byteArray, offset);
+			player.linearVelocity.y = Deserialize_f32(byteArray, offset);
+			player.linearVelocity.z = Deserialize_f32(byteArray, offset);
+
+			player.angularVelocity.x = Deserialize_f32(byteArray, offset);
+			player.angularVelocity.y = Deserialize_f32(byteArray, offset);
+			player.angularVelocity.z = Deserialize_f32(byteArray, offset);
+		}
+		*/
+
+		packet.otherPlayersState.push_back(player);
+	}
+
+	/*
+	packet.inputIndex = Deserialize_u16(byteArray, offset);
+
+	packet.localPosition.x = Deserialize_f32(byteArray, offset);
+	packet.localPosition.y = Deserialize_f32(byteArray, offset);
+	packet.localPosition.z = Deserialize_f32(byteArray, offset);
+
+	packet.localRotation.x = Deserialize_f32(byteArray, offset);
+	packet.localRotation.y = Deserialize_f32(byteArray, offset);
+	packet.localRotation.z = Deserialize_f32(byteArray, offset);
+	packet.localRotation.w = Deserialize_f32(byteArray, offset);
+
+	packet.localAtRest = Deserialize_u8(byteArray, offset) == 1;
+	if (packet.localAtRest)
+	{
+		packet.localLinearVelocity(PxZERO);
+		packet.localAngularVelocity(PxZERO);
+	}
+	else
+	{
+		packet.localLinearVelocity.x = Deserialize_f32(byteArray, offset);
+		packet.localLinearVelocity.y = Deserialize_f32(byteArray, offset);
+		packet.localLinearVelocity.z = Deserialize_f32(byteArray, offset);
+
+		packet.localAngularVelocity.x = Deserialize_f32(byteArray, offset);
+		packet.localAngularVelocity.y = Deserialize_f32(byteArray, offset);
+		packet.localAngularVelocity.z = Deserialize_f32(byteArray, offset);
+	}
+	*/
 
 	return packet;
 }

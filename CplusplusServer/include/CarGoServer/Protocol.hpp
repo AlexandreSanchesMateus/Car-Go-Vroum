@@ -6,6 +6,9 @@
 #include <vector>
 #include <enet6/enet.h>
 
+// #include <PxQuat.h>
+// #include <PxVec3.h>
+
 enum class Opcode : std::uint8_t
 {
 	// client related
@@ -27,9 +30,6 @@ enum class Opcode : std::uint8_t
 	S_RunningState,        // the game has started (where is the player and in witch team)
 	S_StartMoving,         // start moving after a certain time
 	S_FinishedState,       // the game have finished (who wins)
-	
-	S_WorldInit,
-	S_RunnerFall,
 	S_PlayersState
 };
 
@@ -130,6 +130,35 @@ struct GameStateRunningPacket
 
 	void Serialize(std::vector<std::uint8_t>& byteArray) const;
 	static GameStateRunningPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
+};
+
+struct PlayersStatePacket
+{
+	static constexpr Opcode opcode = Opcode::S_PlayersState;
+
+	struct PlayerState
+	{
+		std::uint16_t playerIndex;
+		PlayerInput inputs;
+		// PxVec3 position;
+		// PxQuat rotation;
+		// bool atRest;
+		// PxVec3 linearVelocity;
+		// PxVec3 angularVelocity;
+	};
+
+	std::vector<PlayerState> otherPlayersState;
+
+	// Prediction / Reconciliation
+	// std::uint16_t inputIndex;
+	// PxVec3 localPosition;
+	// PxQuat localRotation;
+	// bool localAtRest;
+	// PxVec3 localLinearVelocity;
+	// PxVec3 localAngularVelocity;
+
+	void Serialize(std::vector<std::uint8_t>& byteArray) const;
+	static PlayersStatePacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
 };
 
 void Serialize_f32(std::vector<std::uint8_t>& byteArray, float value);

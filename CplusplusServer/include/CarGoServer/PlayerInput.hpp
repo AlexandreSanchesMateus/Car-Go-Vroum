@@ -7,4 +7,5 @@ struct PlayerInput
 	float acceleration;
 	float steer;
 	bool brake;
+	bool softRecover;
 };
