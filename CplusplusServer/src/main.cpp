@@ -1,6 +1,3 @@
-#ifndef _DEBUG
-#define _DEBUG
-
 #include "CarGoServer/Constant.hpp"
 #include "CarGoServer/Protocol.hpp"
 #include "CarGoServer/PlayerData.hpp"
@@ -12,13 +9,13 @@
 #include <memory>
 #include <stdexcept>
 #include <physx/PxPhysicsAPI.h>
-using namespace physx;
-
 #include <nlohmann/json.hpp>
 
 #include <iostream>
 #include <fstream>
 #include <CarGoServer/MapData.hpp>
+
+using namespace physx;
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData);
 ENetPacket* build_player_list_packet(GameData gameData);
@@ -51,7 +48,6 @@ int main(int argc, char* argv[])
 	}
 
 	UnserializeMap("assets/map.json");
-
 
 	fmt::println("\nInitialization ...");
 
@@ -323,6 +319,11 @@ ENetPacket* build_running_state_packet(GameData gameData)
 void UnserializeMap(std::string mapPath) {
 	std::ifstream file(mapPath);
 
+	if (!file.is_open()) {
+		std::cerr << "Erreur lors de l'ouverture du fichier : " << mapPath << std::endl;
+		return;
+	}	
+
 	nlohmann::json data;
 	try {
 		data = nlohmann::json::parse(file);
@@ -332,16 +333,34 @@ void UnserializeMap(std::string mapPath) {
 		return;
 	}
 
-	std::cout << "Données JSON chargées: " << data.dump(4) << std::endl; // Affichage de manière lisible
+	//std::cout << "Données JSON chargées: " << data.dump(4) << std::endl; // Affichage de manière lisible
 
-	// Désérialiser en MapData
 	MapData mapData;
 	mapData.from_json(data);
 
-	// Optionnel: Affiche les objets physiques chargés
-	for (const auto& obj : mapData.physicObjects) {
-		std::cout << "Objet chargé de type: " << obj->Type << std::endl;
+	//// Optionnel: Affiche les objets physiques chargés
+	//for (const auto& obj : mapData.physicObjects) {
+	//	std::cout << "Objet chargé de type: " << obj->Type << std::endl;
+	
+
+	physx::PxScene() scene;
+
+	for (const auto& obj : mapData.physicObjects)
+	{
+		if (obj) {  
+			if (obj->Type == "Capsule") {
+				CapsuleObject* capsule = dynamic_cast<CapsuleObject*>(obj.get());
+				physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(physx::PxReal(capsule->radius), physx::PxReal(capsule->height / 2));
+			}
+			else if (obj->Type == "Sphere") {
+
+			}
+			else if (obj->Type == "Box"){
+
+			}
+			else if (obj->Type == "Mesh") {
+
+			}
+		}
 	}
 }
-
-#endif

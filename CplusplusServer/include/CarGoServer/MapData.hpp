@@ -33,13 +33,14 @@ public:
         j.at("Type").get_to(Type);
     }
 
+	virtual void CreatePhysxObject() {}
 };
 
 class CapsuleObject : public PhysicObject {
 public:
 	PxVec3 position;
 	PxQuat rotation;
-	PxVec3 radius;
+	float radius;
 	float height;
 
 	CapsuleObject() {
@@ -52,6 +53,10 @@ public:
 		::from_json(j.at("rotation"), rotation);
 		::from_json(j.at("radius"), radius);
 		j.at("height").get_to(height);
+	}
+
+	void CreatePhysxObject() {
+		physx::PxCapsuleGeometry capsule = physx::PxCapsuleGeometry(physx::PxReal(radius), physx::PxReal(height / 2));
 	}
 };
 
