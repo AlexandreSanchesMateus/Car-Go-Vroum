@@ -1,8 +1,9 @@
 #pragma once
 #include <cstdint>
 #include <tuple>
-
-// #include <PxVec3.h>
+#include <string>
+#include <physx/foundation/PxVec3.h>
+#include <physx/foundation/PxQuat.h>
 
 const std::uint16_t AppPort = 14769;
 
@@ -12,6 +13,8 @@ const int MinPlayerCount = 2;
 const int MaxPlayerCount = 20;
 
 const float InfectedPercentage = 0.25;
+
+const std::string MapPath = "assets/map.json";
 
 // To change for PxVec3
 const std::tuple<float, float> SurvivorSpawn[] =

@@ -15,6 +15,8 @@
 #include <iostream>
 #include <fstream>
 #include <CarGoServer/MapData.hpp>
+#include <CarGoServer/Map.hpp>
+#include <CarGoServer/Map.hpp>
 
 using namespace physx;
 
@@ -33,23 +35,6 @@ int main()
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "\\____/_/  |_/_/ |_|      \\____/\\____/   /____/_____/_/ |_| |___/_____/_/ |_|\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "                                                             by Alexandre SM & Timothe L\n");
 
-
-	static PxDefaultErrorCallback gDefaultErrorCallback;
-	static PxDefaultAllocator gDefaultAllocatorCallback;
-
-	PxFoundation* foundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocatorCallback, gDefaultErrorCallback);
-	if (!foundation) {
-		printf("Failed to create PhysX Foundation\n");
-		return -1;
-	}
-
-	PxPhysics* physics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation, PxTolerancesScale(), true, nullptr);
-	if (!physics) {
-		printf("Failed to create PhysX Physics\n");
-		return -1;
-	}
-
-	UnserializeMap("assets/map.json");
 
 	fmt::println("\nInitialization ...");
 
@@ -88,6 +73,8 @@ int main()
 
 	GameData gameData;
 	gameData.state = GameState::LOBBY;
+
+	Map map;
 
 	bool serverOpen = true;
 	while (serverOpen)
@@ -232,10 +219,6 @@ int main()
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "| _ \\ || / -_) | '_ \\ || / -_)\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "|___/\\_, \\___| |_.__/\\_, \\___|\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "     |__/            |__/\n");
-
-	// Nettoyer la mémoire
-	physics->release();
-	foundation->release();
 
 	return EXIT_SUCCESS;
 }
@@ -422,18 +405,15 @@ void UnserializeMap(std::string mapPath) {
 		return;
 	}
 
-	//std::cout << "Données JSON chargées: " << data.dump(4) << std::endl; // Affichage de manière lisible
+	//std::cout << "Donnï¿½es JSON chargï¿½es: " << data.dump(4) << std::endl; // Affichage de maniï¿½re lisible
 
 	MapData mapData;
 	mapData.from_json(data);
 
-	//// Optionnel: Affiche les objets physiques chargés
+	//// Optionnel: Affiche les objets physiques chargï¿½s
 	//for (const auto& obj : mapData.physicObjects) {
-	//	std::cout << "Objet chargé de type: " << obj->Type << std::endl;
+	//	std::cout << "Objet chargï¿½ de type: " << obj->Type << std::endl;
 	
-
-	physx::PxScene() scene;
-
 	for (const auto& obj : mapData.physicObjects)
 	{
 		if (obj) {  
@@ -442,7 +422,7 @@ void UnserializeMap(std::string mapPath) {
 				physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(physx::PxReal(capsule->radius), physx::PxReal(capsule->height / 2));
 			}
 			else if (obj->Type == "Sphere") {
-
+				
 			}
 			else if (obj->Type == "Box"){
 

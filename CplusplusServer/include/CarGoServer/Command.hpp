@@ -14,7 +14,8 @@ public:
 	{
 		Purge,
 		Kick,
-		Close
+		Close,
+		Easter
 	};
 
 	struct Report
@@ -29,7 +30,7 @@ public:
 
 private:
 	const std::unordered_map<std::string, Action> m_commands = {
-		{"purge", Action::Purge}, {"kick", Action::Kick}, {"close", Action::Close}
+		{"purge", Action::Purge}, {"kick", Action::Kick}, {"close", Action::Close}, {"bite", Action::Easter}
 	};
 
 	std::string m_prompt;

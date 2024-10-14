@@ -51,7 +51,7 @@ public:
 		PhysicObject::from_json(j);
 		::from_json(j.at("position"), position);
 		::from_json(j.at("rotation"), rotation);
-		::from_json(j.at("radius"), radius);
+		j.at("radius").get_to(radius);
 		j.at("height").get_to(height);
 	}
 
