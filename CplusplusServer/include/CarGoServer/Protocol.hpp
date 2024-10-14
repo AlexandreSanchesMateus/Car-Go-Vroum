@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CarGoServer/PlayerInput.hpp"
 #include <cstdint>
@@ -18,8 +18,10 @@ enum class Opcode : std::uint8_t
 
 	// server related
 	// init
-	S_GameData,            // send the player's id, send once after player's name initialization
-	S_PlayerList,          // list of all players (id + name)
+	S_GameData,            // send the player's id + list players, send once after player's name initialization
+	S_PlayerConnected,
+	S_PlayerDisconnected,
+	S_Ready,
 
 	// runtime
 	S_RunningState,        // the game has started (where is the player and in witch team)
@@ -62,9 +64,42 @@ struct PlayerInputPacket
 	static PlayerInputPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
 };
 
-struct PlayerListPacket
+struct PlayerConnectPacket
 {
-	static constexpr Opcode opcode = Opcode::S_PlayerList;
+	static constexpr Opcode opcode = Opcode::S_PlayerConnected;
+
+	std::uint16_t playerIndex;
+	std::string name;
+	bool ready;
+
+	void Serialize(std::vector<std::uint8_t>& byteArray) const;
+	static PlayerConnectPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
+};
+
+struct PlayerDisconnectedPacket
+{
+	static constexpr Opcode opcode = Opcode::S_PlayerDisconnected;
+
+	std::uint16_t playerIndex;
+
+	void Serialize(std::vector<std::uint8_t>& byteArray) const;
+	static PlayerDisconnectedPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
+};
+
+struct ReadyPacket
+{
+	static constexpr Opcode opcode = Opcode::S_Ready;
+
+	std::uint16_t playerIndex;
+	bool ready;
+
+	void Serialize(std::vector<std::uint8_t>& byteArray) const;
+	static ReadyPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
+};
+
+struct GameDataPacket
+{
+	static constexpr Opcode opcode = Opcode::S_GameData;
 
 	struct PlayerPacketData
 	{
@@ -73,17 +108,8 @@ struct PlayerListPacket
 		bool ready;
 	};
 
+	std::uint16_t targetPlayerIndex;
 	std::vector<PlayerPacketData> playerList;
-
-	void Serialize(std::vector<std::uint8_t>& byteArray) const;
-	static PlayerListPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
-};
-
-struct GameDataPacket
-{
-	static constexpr Opcode opcode = Opcode::S_GameData;
-
-	std::uint16_t playerIndex;
 
 	void Serialize(std::vector<std::uint8_t>& byteArray) const;
 	static GameDataPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
@@ -132,10 +158,10 @@ std::uint16_t Deserialize_u16(const std::vector<std::uint8_t>& byteArray, std::s
 std::uint32_t Deserialize_u32(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
 std::string Deserialize_str(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
 
-// Petite fonction d'aide pour construire un packet ENet à partir d'une de nos structures de packet, insère automatiquement l'opcode au début des données
+// Petite fonction d'aide pour construire un packet ENet Ã  partir d'une de nos structures de packet, insÃ¨re automatiquement l'opcode au dÃ©but des donnÃ©es
 template<typename T> ENetPacket* build_packet(const T& packet, enet_uint32 flags)
 {
-	// On sérialise l'opcode puis le contenu du packet dans un std::vector<std::uint8_t>
+	// On sÃ©rialise l'opcode puis le contenu du packet dans un std::vector<std::uint8_t>
 	std::vector<std::uint8_t> byteArray;
 
 	Serialize_u8(byteArray, static_cast<std::uint8_t>(T::opcode));

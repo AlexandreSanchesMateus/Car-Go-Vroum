@@ -1,9 +1,11 @@
+using ENet6;
 using NaughtyAttributes;
 using NetworkProtocol;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MenuManager : MonoBehaviour
 {
@@ -18,6 +20,8 @@ public class MenuManager : MonoBehaviour
     private TMP_InputField ipInputField;
     [SerializeField, BoxGroup("Join")]
     private TMP_InputField pseudoInputField;
+    [SerializeField, BoxGroup("Join")]
+    private Button joinBtn;
 
     [SerializeField, BoxGroup("Connection")]
     private GameObject connectionPanel;
@@ -28,15 +32,35 @@ public class MenuManager : MonoBehaviour
     private GameObject slotPrefab;
     [SerializeField, BoxGroup("Lobby")]
     private Transform content;
+    [SerializeField, BoxGroup("Lobby")]
+    private Button readyBtn;
+    [SerializeField, BoxGroup("Lobby")]
+    private TextMeshProUGUI readyTxt;
 
-    private List<LobbySlot> m_lobbySlots = new List<LobbySlot>();
+    private Dictionary<int, LobbySlot> m_lobbySlots = new Dictionary<int, LobbySlot>();
+    private bool m_lastReadyStatus = false;
 
     private void Awake()
     {
         SCORef.Menu = this;
+        joinBtn.interactable = false;
+
+        pseudoInputField.onSubmit.AddListener(this.TryConnectToNetwork);
+        ipInputField.onSubmit.AddListener(this.TryConnectToNetwork);
+
+        pseudoInputField.onValueChanged.AddListener(this.UpdateJoinBtnInteractivity);
+        ipInputField.onValueChanged.AddListener(this.UpdateJoinBtnInteractivity);
     }
 
-    public void TryConnectToNetwork()
+    private void UpdateJoinBtnInteractivity(string nan)
+    {
+        if(string.IsNullOrEmpty(ipInputField.text) || string.IsNullOrEmpty(pseudoInputField.text))
+            joinBtn.interactable = false;
+        else
+            joinBtn.interactable = true;
+    }
+
+    public void TryConnectToNetwork(string nan)
     {
         // Vérification des entrées
         if (string.IsNullOrEmpty(ipInputField.text))
@@ -54,17 +78,27 @@ public class MenuManager : MonoBehaviour
         connectionPanel.SetActive(true);
 
         // Tentative de connection
-        if (SCORef.network.Connect(ipInputField.text))
+        if (SCORef.Network.Connect(ipInputField.text))
         {
-            lobbyPanel.SetActive(true);
+            PlayerNamePacket namePacket = new PlayerNamePacket();
+            namePacket.name = pseudoInputField.text;
+            SCORef.Network.BuildAndSendPacketToNetwork<PlayerNamePacket>(namePacket, ENet6.PacketFlags.Reliable, 0);
         }
         else
         {
-            connectionError.text = "Connection failed";
+            connectionError.text = "Connection failed - Lobby full or invalid ip address";
+            connectionPanel.SetActive(false);
             joinPanel.SetActive(true);
         }
+    }
 
-        connectionPanel.SetActive(false);
+    public void SendReady()
+    {
+        PlayerReadyPacket readyPacket = new PlayerReadyPacket();
+        readyPacket.ready = !m_lastReadyStatus;
+
+        SCORef.Network.BuildAndSendPacketToNetwork<PlayerReadyPacket>(readyPacket, ENet6.PacketFlags.Reliable, 0);
+        readyBtn.interactable = false;
     }
 
     public void HandleMessage(byte[] message, GameData gameData)
@@ -76,13 +110,142 @@ public class MenuManager : MonoBehaviour
         switch (opcode)
         {
             case EOpcode.S_GameData:
-                gameData.ownPlayerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
+                {
+                    connectionPanel.SetActive(false);
+                    lobbyPanel.SetActive(true);
+
+                    GameDataPacket packet = GameDataPacket.Deserialize(byteArray, ref offset);
+                    gameData.ownPlayerIndex = packet.targetPlayerIndex;
+
+                    foreach (GameDataPacket.PlayerPacketData data in packet.playerList)
+                    {
+                        Player player = new Player(data.index, data.name);
+                        player.ready = data.ready;
+                        gameData.players.Add(player);
+
+                        LobbySlot component = Instantiate<GameObject>(slotPrefab, content).GetComponent<LobbySlot>();
+                        component.InitSlot(player);
+
+                        m_lobbySlots.Add(data.index, component);
+                    }
+                }
                 break;
 
-            case EOpcode.S_PlayerList:
-                PlayerListPacket packet = PlayerListPacket.Deserialize(byteArray, ref offset);
+            case EOpcode.S_PlayerConnected:
+                {
+                    PlayerConnectPacket packet = PlayerConnectPacket.Deserialize(byteArray, ref offset);
 
+                    Player player = new Player(packet.playerIndex, packet.name);
+                    player.ready = packet.ready;
+                    gameData.players.Add(player);
+
+                    LobbySlot component = Instantiate<GameObject>(slotPrefab, content).GetComponent<LobbySlot>();
+                    component.InitSlot(player);
+
+                    m_lobbySlots.Add(packet.playerIndex, component);
+                }
+                break;
+
+            case EOpcode.S_PlayerDisconnected:
+                {
+                    PlayerDisconnectedPacket packet = PlayerDisconnectedPacket.Deserialize(byteArray,ref offset);
+
+                    Player targetPlayer = gameData.players.Find((Player other) => { return other.Index == packet.playerIndex; });
+
+                    if (targetPlayer != null)
+                        gameData.players.Remove(targetPlayer);
+                    else
+                        Debug.LogWarning("Can't find disconnected player");
+
+                    if (m_lobbySlots.TryGetValue(packet.playerIndex, out LobbySlot other))
+                    {
+                        Destroy(other.gameObject);
+                        m_lobbySlots.Remove(packet.playerIndex);
+                    }
+                }
+                break;
+
+            case EOpcode.S_Ready:
+                {
+                    ReadyPacket readyPacket = ReadyPacket.Deserialize(byteArray, ref offset);
+
+                    Player player = gameData.players.Find((Player other) => { return other.Index == readyPacket.playerIndex; });
+                    if (player != null)
+                    {
+                        player.ready = readyPacket.ready;
+
+                        if(gameData.ownPlayerIndex == readyPacket.playerIndex)
+                        {
+                            m_lastReadyStatus = readyPacket.ready;
+                            readyBtn.interactable = true;
+
+                            if (m_lastReadyStatus)
+                                readyTxt.text = "NOT READY";
+                            else
+                                readyTxt.text = "READY";
+
+                            if (m_lobbySlots.TryGetValue(readyPacket.playerIndex, out LobbySlot other))
+                                other.ChangeReadyStatus(m_lastReadyStatus);
+                        }
+                    }
+                    else
+                        Debug.LogWarning("Can't find disconnected player");
+
+                }
                 break;
         }
+    }
+
+    public void HandleDisconnection(uint disconectId)
+    {
+        Debug.Log(disconectId);
+
+        m_lastReadyStatus = false;
+        readyBtn.interactable = true;
+        readyTxt.text = "READY";
+
+        foreach (var packet in m_lobbySlots)
+        {
+            Destroy(packet.Value.gameObject);
+        }
+        m_lobbySlots.Clear();
+
+        connectionPanel.SetActive(false);
+        lobbyPanel.SetActive(false);
+        joinPanel.SetActive(true);
+
+        switch (disconectId)
+        {
+            case (uint)DisconnectReport.DISCONNECTED:
+                connectionError.text = "";
+                break;
+
+            case (uint)DisconnectReport.SERVER_END:
+                connectionError.text = "The lobby has closed";
+                break;
+
+            case (uint)DisconnectReport.KICK:
+                connectionError.text = "You have been kicked from his lobby";
+                break;
+
+            case (uint)DisconnectReport.LOBBY_FULL:
+                connectionError.text = "Lobby full";
+                break;
+
+            case (uint)DisconnectReport.GAME_LAUNCHED:
+                connectionError.text = "Game already started";
+                break;
+        }
+    }
+
+    public void LeaveLobby()
+    {
+        if(SCORef != null && SCORef.Network != null)
+            SCORef.Network.Disconnect();
+    }
+
+    public void ReturnToDesktop()
+    {
+        Application.Quit();
     }
 }
