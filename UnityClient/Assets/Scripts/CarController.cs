@@ -69,13 +69,11 @@ public class CarController : MonoBehaviour
     [SerializeField, BoxGroup("Recover Settings")]
     private float flipingForce = 200f;
 
-    [SerializeField, BoxGroup("UI")]
-    private TextMeshProUGUI speedDebug;
-
-
     // Input variable
     public float AccelerationInput { get; set; } = 0f;
-    public bool NeedToBreak { get; set; } = false;
+    public bool NeedToBrake { get; set; } = false;
+
+    public int ShowSpeed { get; private set; }
 
     private float m_desireTurnAngle;
     private float m_currentTurnAngle;
@@ -93,8 +91,7 @@ public class CarController : MonoBehaviour
 
     private void Update()
     {
-        if(speedDebug != null)
-            speedDebug.text = ((int)Vector3.Dot(transform.forward, carRb.velocity)).ToString();
+        ShowSpeed = (int)Vector3.Dot(transform.forward, carRb.velocity);
 
         // Faire un float desireTurnRadius et le smoother
         // puis faire le calcule de rotation
@@ -143,7 +140,7 @@ public class CarController : MonoBehaviour
         RB_wheelData.UpdateSkidmark(skidmarksController, frictionStartSkidmark);
     }
 
-    private void FixedUpdate()
+    public void UpdatePhysics()
     {
         bool isFullyGrounded = true;
 
@@ -188,7 +185,7 @@ public class CarController : MonoBehaviour
             // ---------------------- Forward Force (acceleration / break) ----------------------
             float carSpeed = Vector3.Dot(transform.forward, carRb.velocity);
 
-            if (NeedToBreak)
+            if (NeedToBrake)
             {
                 if (carSpeed < -0.1f)
                 {
@@ -292,6 +289,16 @@ public class CarController : MonoBehaviour
     public void SetTurnAngle(float angle, float normalDesireAngle)
     {
         m_currentTurnAngle = angle;
+    }
+
+    public void SetInfectedModel()
+    {
+        
+    }
+
+    public void SetSurvivorModel()
+    {
+
     }
 
     public void SoftRecover()

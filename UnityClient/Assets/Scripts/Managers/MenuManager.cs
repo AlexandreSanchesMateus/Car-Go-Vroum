@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class MenuManager : MonoBehaviour
@@ -43,6 +44,25 @@ public class MenuManager : MonoBehaviour
     private void Awake()
     {
         SCORef.Menu = this;
+        SCORef.GameData.state = GameData.GameState.LOBBY;
+
+        // vérifier s'il est déjç connecté (revernir après une partie)
+        if (SCORef.Network.IsConnected)
+        {
+            joinPanel.SetActive(false);
+            lobbyPanel.SetActive(true);
+
+            foreach (Player player in SCORef.GameData.players)
+            {
+                player.ready = false;
+
+                LobbySlot component = Instantiate<GameObject>(slotPrefab, content).GetComponent<LobbySlot>();
+                component.InitSlot(player);
+
+                m_lobbySlots.Add(player.Index, component);
+            }
+        }
+
         joinBtn.interactable = false;
 
         pseudoInputField.onSubmit.AddListener(this.TryConnectToNetwork);
@@ -101,7 +121,7 @@ public class MenuManager : MonoBehaviour
         readyBtn.interactable = false;
     }
 
-    public void HandleMessage(byte[] message, GameData gameData)
+    public void HandleMessage(byte[] message)
     {
         List<byte> byteArray = new List<byte>(message);
 
@@ -115,13 +135,13 @@ public class MenuManager : MonoBehaviour
                     lobbyPanel.SetActive(true);
 
                     GameDataPacket packet = GameDataPacket.Deserialize(byteArray, ref offset);
-                    gameData.ownPlayerIndex = packet.targetPlayerIndex;
+                    SCORef.GameData.ownPlayerIndex = packet.targetPlayerIndex;
 
                     foreach (GameDataPacket.PlayerPacketData data in packet.playerList)
                     {
                         Player player = new Player(data.index, data.name);
                         player.ready = data.ready;
-                        gameData.players.Add(player);
+                        SCORef.GameData.players.Add(player);
 
                         LobbySlot component = Instantiate<GameObject>(slotPrefab, content).GetComponent<LobbySlot>();
                         component.InitSlot(player);
@@ -137,7 +157,7 @@ public class MenuManager : MonoBehaviour
 
                     Player player = new Player(packet.playerIndex, packet.name);
                     player.ready = packet.ready;
-                    gameData.players.Add(player);
+                    SCORef.GameData.players.Add(player);
 
                     LobbySlot component = Instantiate<GameObject>(slotPrefab, content).GetComponent<LobbySlot>();
                     component.InitSlot(player);
@@ -150,10 +170,10 @@ public class MenuManager : MonoBehaviour
                 {
                     PlayerDisconnectedPacket packet = PlayerDisconnectedPacket.Deserialize(byteArray,ref offset);
 
-                    Player targetPlayer = gameData.players.Find((Player other) => { return other.Index == packet.playerIndex; });
+                    Player targetPlayer = SCORef.GameData.players.Find((Player other) => { return other.Index == packet.playerIndex; });
 
                     if (targetPlayer != null)
-                        gameData.players.Remove(targetPlayer);
+                        SCORef.GameData.players.Remove(targetPlayer);
                     else
                         Debug.LogWarning("Can't find disconnected player");
 
@@ -169,12 +189,12 @@ public class MenuManager : MonoBehaviour
                 {
                     ReadyPacket readyPacket = ReadyPacket.Deserialize(byteArray, ref offset);
 
-                    Player player = gameData.players.Find((Player other) => { return other.Index == readyPacket.playerIndex; });
+                    Player player = SCORef.GameData.players.Find((Player other) => { return other.Index == readyPacket.playerIndex; });
                     if (player != null)
                     {
                         player.ready = readyPacket.ready;
 
-                        if(gameData.ownPlayerIndex == readyPacket.playerIndex)
+                        if (SCORef.GameData.ownPlayerIndex == readyPacket.playerIndex)
                         {
                             m_lastReadyStatus = readyPacket.ready;
                             readyBtn.interactable = true;
@@ -193,12 +213,32 @@ public class MenuManager : MonoBehaviour
 
                 }
                 break;
+
+            case EOpcode.S_RunningState:
+                GameStateRunningPacket gameStateRunningPacket = GameStateRunningPacket.Deserialize(byteArray, ref offset);
+
+                foreach(GameStateRunningPacket.RunningPacketData other in gameStateRunningPacket.playerList)
+                {
+                    Player player = SCORef.GameData.players.Find((Player player) => { return player.Index == other.playerIndex; });
+                    if(player != null)
+                    {
+                        player.isInfected = other.isInfected;
+                        player.slotId = other.slotId;
+                    }
+                    else
+                        Debug.LogWarning("Can't find player for running state");
+                }
+
+                // Load game scene
+                SceneManager.LoadScene(1);
+                break;
         }
     }
 
     public void HandleDisconnection(uint disconectId)
     {
-        Debug.Log(disconectId);
+        SCORef.GameData.players.Clear();
+        SCORef.GameData.ownPlayerIndex = -1;
 
         m_lastReadyStatus = false;
         readyBtn.interactable = true;

@@ -10,12 +10,13 @@ public class PlayerInputManager : MonoBehaviour
     [SerializeField]
     private LookController lookController;
 
+    public PlayerInput m_lastInput { get; private set; }
 
     // Action Map
     private void Awake()
     {
         playerAction = new PlayerInputAction();
-        EnableCarMap();
+        m_lastInput = new PlayerInput();
 
         // look functions
         playerAction.PlayerCarMap.LookBack.performed += OnLookBack;
@@ -26,8 +27,8 @@ public class PlayerInputManager : MonoBehaviour
         playerAction.PlayerCarMap.Acceleration.canceled += OnCarAccelerate;
         playerAction.PlayerCarMap.Turn.performed += OnCarTurn;
         playerAction.PlayerCarMap.Turn.canceled += OnCarTurn;
-        playerAction.PlayerCarMap.Break.performed += OnCarBreak;
-        playerAction.PlayerCarMap.Break.canceled += OnCarBreak;
+        playerAction.PlayerCarMap.Break.performed += OnCarBrake;
+        playerAction.PlayerCarMap.Break.canceled += OnCarBrake;
         playerAction.PlayerCarMap.Recover.performed += OnCarRecover;
     }
 
@@ -42,8 +43,8 @@ public class PlayerInputManager : MonoBehaviour
         playerAction.PlayerCarMap.Acceleration.canceled -= OnCarAccelerate;
         playerAction.PlayerCarMap.Turn.performed -= OnCarTurn;
         playerAction.PlayerCarMap.Turn.canceled -= OnCarTurn;
-        playerAction.PlayerCarMap.Break.performed -= OnCarBreak;
-        playerAction.PlayerCarMap.Break.canceled -= OnCarBreak;
+        playerAction.PlayerCarMap.Break.performed -= OnCarBrake;
+        playerAction.PlayerCarMap.Break.canceled -= OnCarBrake;
         playerAction.PlayerCarMap.Recover.performed -= OnCarRecover;
 
         DisableCarMap();
@@ -65,23 +66,43 @@ public class PlayerInputManager : MonoBehaviour
     // Car Controller
     public void OnCarAccelerate(InputAction.CallbackContext context)
     {
-        carController.AccelerationInput = context.ReadValue<float>();
+        int acceleration = (int)context.ReadValue<float>();
+        m_lastInput.acceleration = acceleration;
+        carController.AccelerationInput = acceleration;
     }
 
     public void OnCarTurn(InputAction.CallbackContext context)
     {
-        carController.SetDesireTurnAngle(context.ReadValue<float>());
+        int turn = (int)context.ReadValue<float>();
+        m_lastInput.steer = turn;
+        carController.SetDesireTurnAngle(turn);
     }
 
-    public void OnCarBreak(InputAction.CallbackContext context)
+    public void OnCarBrake(InputAction.CallbackContext context)
     {
-        carController.NeedToBreak = context.ReadValue<float>() > 0.5f;
+        if (context.phase == InputActionPhase.Performed)
+        {
+            m_lastInput.brake = true;
+            carController.NeedToBrake = true;
+        }
+        else
+        {
+            m_lastInput.brake = false;
+            carController.NeedToBrake = false;
+        }
     }
 
     public void OnCarRecover(InputAction.CallbackContext context)
     {
-        carController.SoftRecover();
+        if(context.phase == InputActionPhase.Performed)
+        {
+            m_lastInput.softRecover = true;
+            carController.SoftRecover();
+        }
+        else
+            m_lastInput.softRecover = false;
     }
+
 
     // Car Look
     public void OnLookBack(InputAction.CallbackContext context)

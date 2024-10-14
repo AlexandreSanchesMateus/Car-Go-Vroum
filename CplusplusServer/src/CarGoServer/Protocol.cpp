@@ -236,28 +236,13 @@ PlayerReadyPacket PlayerReadyPacket::Deserialize(const std::vector<std::uint8_t>
 
 void PlayerInputPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
-	Serialize_f32(byteArray, inputs.acceleration);
-	Serialize_f32(byteArray, inputs.steer);
-
-	std::uint8_t inputByte = 0;
-	if (inputs.brake)
-		inputByte |= 0b1;
-
-	if (inputs.softRecover)
-		inputByte |= 0b10;
-
-	Serialize_u8(byteArray, inputByte);
+	inputs.Serialize(byteArray);
 }
 
 PlayerInputPacket PlayerInputPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
 {
 	PlayerInputPacket packet;
-	packet.inputs.acceleration = Deserialize_f32(byteArray, offset);
-	packet.inputs.steer = Deserialize_f32(byteArray, offset);
-
-	std::uint8_t inputByte = Deserialize_u8(byteArray, offset);
-	packet.inputs.brake = (inputByte & 0b1) != 0;
-	packet.inputs.softRecover = (inputByte & 0b10) != 0;
+	packet.inputs = PlayerInput::Deserialize(byteArray, offset);
 
 	return packet;
 }
@@ -342,9 +327,9 @@ GameDataPacket GameDataPacket::Deserialize(const std::vector<std::uint8_t>& byte
 
 void GameStateRunningPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
-	Serialize_u8(byteArray, playersState.size());
+	Serialize_u8(byteArray, playerList.size());
 
-	for (const GameStateRunningPacket::RunningPacketData& data : playersState)
+	for (const GameStateRunningPacket::RunningPacketData& data : playerList)
 	{
 		Serialize_u16(byteArray, data.playerIndex);
 		std::uint8_t byte = ((data.isInfected ? 1 : 0) << 8) | data.slotId;
@@ -365,7 +350,7 @@ GameStateRunningPacket GameStateRunningPacket::Deserialize(const std::vector<std
 		state.slotId = byte & 0b01111111;
 		state.isInfected = byte >> 8 == 1;
 
-		packet.playersState.push_back(state);
+		packet.playerList.push_back(state);
 	}
 
 	return packet;
@@ -378,19 +363,7 @@ void PlayersStatePacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 	for (const PlayerState player : otherPlayersState)
 	{
 		Serialize_u16(byteArray, player.playerIndex);
-
-		// input
-		Serialize_f32(byteArray, player.inputs.acceleration);
-		Serialize_f32(byteArray, player.inputs.steer);
-
-		std::uint8_t inputByte = 0;
-		if (player.inputs.brake)
-			inputByte |= 0b1;
-
-		if (player.inputs.softRecover)
-			inputByte |= 0b10;
-
-		Serialize_u8(byteArray, inputByte);
+		player.inputs.Serialize(byteArray);
 
 		/*
 		// position
@@ -462,14 +435,7 @@ PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_
 	{
 		PlayerState player;
 		player.playerIndex = Deserialize_u16(byteArray, offset);
-
-		// input
-		player.inputs.acceleration = Deserialize_f32(byteArray, offset);
-		player.inputs.steer = Deserialize_f32(byteArray, offset);
-
-		std::uint8_t inputByte = Deserialize_u8(byteArray, offset);
-		player.inputs.brake = (inputByte & 0b1) != 0;
-		player.inputs.softRecover = (inputByte & 0b10) != 0;
+		player.inputs = PlayerInput::Deserialize(byteArray, offset);
 
 		/*
 		player.position.x = Deserialize_f32(byteArray, offset);
@@ -531,6 +497,19 @@ PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_
 		packet.localAngularVelocity.z = Deserialize_f32(byteArray, offset);
 	}
 	*/
+
+	return packet;
+}
+
+void PlayerInfectedPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
+{
+	Serialize_u16(byteArray, playerIndex);
+}
+
+PlayerInfectedPacket PlayerInfectedPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
+{
+	PlayerInfectedPacket packet;
+	packet.playerIndex = Deserialize_u16(byteArray, offset);
 
 	return packet;
 }

@@ -12,8 +12,7 @@ public class GameData
         GAME_FINISHED
     }
 
-    public GameState state;
+    public GameState state = GameData.GameState.LOBBY;
     public List<Player> players = new List<Player>();
-
-    public int ownPlayerIndex;
+    public int ownPlayerIndex = -1;
 }

@@ -368,7 +368,7 @@ ENetPacket* build_running_state_packet(GameData gameData)
 		player.slotId = it->spawnSlotId;
 		player.isInfected = it->isInfected;
 
-		packet.playersState.push_back(player);
+		packet.playerList.push_back(player);
 	}
 
 	return build_packet<GameStateRunningPacket>(packet, ENET_PACKET_FLAG_RELIABLE);

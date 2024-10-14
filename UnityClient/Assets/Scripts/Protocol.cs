@@ -1,12 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Net;
 using System.Text;
-using ENet6;
-using Unity.VisualScripting;
-using System.Reflection.Emit;
+using UnityEngine.Windows;
 
 
 namespace NetworkProtocol
@@ -21,15 +18,21 @@ namespace NetworkProtocol
         S_PlayerConnected,
         S_PlayerDisconnected,
         S_Ready,
+
+        S_RunningState,
+        S_StartMovingState,
+        S_FinishedState,
+        S_PlayersState,
+        S_PlayerInfected
     }
 
     public enum DisconnectReport : UInt32
     {
         DISCONNECTED,
         SERVER_END,
-	    KICK,
-	    LOBBY_FULL,
-	    GAME_LAUNCHED
+        KICK,
+        LOBBY_FULL,
+        GAME_LAUNCHED
     };
 
     public abstract class BasePacket
@@ -73,7 +76,7 @@ namespace NetworkProtocol
         public static PlayerReadyPacket Deserialize(List<byte> byteArray, ref int offset)
         {
             PlayerReadyPacket packet = new PlayerReadyPacket();
-            packet.ready = Serializer.Deserialize_uByte(byteArray, ref offset) == 1;
+            packet.ready = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
 
             return packet;
         }
@@ -84,23 +87,17 @@ namespace NetworkProtocol
         public PlayerInputPacket() { Opcode = EOpcode.C_PlayerInputs; }
 
         public PlayerInput inputs = new PlayerInput();
+        //public UInt16 inputIndex;
 
         public override void Serialize(List<byte> byteArray)
         {
-            Serializer.Serialize_float(byteArray, inputs.acceleration);
-            Serializer.Serialize_float(byteArray, inputs.steer);
-
-            byte octet = (byte)(inputs.brake ? 1 : 0);
-            Serializer.Serialize_uByte(byteArray, octet);
+            inputs.Serialize(byteArray);
         }
 
         public static PlayerInputPacket Deserialize(List<byte> byteArray, ref int offset)
         {
             PlayerInputPacket packet = new PlayerInputPacket();
-
-            packet.inputs.acceleration = Serializer.Deserialize_float(byteArray, ref offset);
-            packet.inputs.steer = Serializer.Deserialize_float(byteArray, ref offset);
-            packet.inputs.brake = Serializer.Deserialize_uByte(byteArray, ref offset) == 1;
+            packet.inputs = PlayerInput.Deserialize(byteArray, ref offset);
 
             return packet;
         }
@@ -108,7 +105,7 @@ namespace NetworkProtocol
 
     public class PlayerConnectPacket : BasePacket
     {
-        public PlayerConnectPacket() {  Opcode = EOpcode.S_PlayerConnected; }
+        public PlayerConnectPacket() { Opcode = EOpcode.S_PlayerConnected; }
 
         public UInt16 playerIndex;
         public string name;
@@ -126,7 +123,7 @@ namespace NetworkProtocol
             PlayerConnectPacket packet = new PlayerConnectPacket();
             packet.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
             packet.name = Serializer.Deserialize_str(byteArray, ref offset);
-            packet.ready = Serializer.Deserialize_uByte(byteArray, ref offset) == 1;
+            packet.ready = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
 
             return packet;
         }
@@ -134,7 +131,7 @@ namespace NetworkProtocol
 
     public class PlayerDisconnectedPacket : BasePacket
     {
-        public PlayerDisconnectedPacket() { Opcode= EOpcode.S_PlayerDisconnected; }
+        public PlayerDisconnectedPacket() { Opcode = EOpcode.S_PlayerDisconnected; }
 
         public UInt16 playerIndex;
 
@@ -154,7 +151,7 @@ namespace NetworkProtocol
 
     public class ReadyPacket : BasePacket
     {
-        public ReadyPacket() { Opcode= EOpcode.S_Ready;}
+        public ReadyPacket() { Opcode = EOpcode.S_Ready; }
 
         public UInt16 playerIndex;
         public bool ready;
@@ -169,7 +166,7 @@ namespace NetworkProtocol
         {
             ReadyPacket packet = new ReadyPacket();
             packet.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
-            packet.ready = Serializer.Deserialize_uByte(byteArray, ref offset) == 1;
+            packet.ready = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
 
             return packet;
         }
@@ -214,10 +211,189 @@ namespace NetworkProtocol
                 PlayerPacketData player;
                 player.index = Serializer.Deserialize_u16(byteArray, ref offset);
                 player.name = Serializer.Deserialize_str(byteArray, ref offset);
-                player.ready = Serializer.Deserialize_uByte(byteArray, ref offset) == 1;
+                player.ready = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
 
                 packet.playerList.Add(player);
             }
+
+            return packet;
+        }
+    }
+
+    public class GameStateRunningPacket : BasePacket
+    {
+        public GameStateRunningPacket() { Opcode = EOpcode.S_RunningState; }
+
+        public struct RunningPacketData
+        {
+            public UInt16 playerIndex;
+            public byte slotId;
+            public bool isInfected;
+        };
+
+        public List<RunningPacketData> playerList = new List<RunningPacketData>();
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_uByte(byteArray, (byte)playerList.Count);
+
+            foreach (RunningPacketData data in playerList)
+	        {
+                Serializer.Serialize_u16(byteArray, data.playerIndex);
+                byte other = (byte)(data.isInfected ? 0b10000000 : 0b0);
+                other |= data.slotId;
+
+                Serializer.Serialize_uByte(byteArray, other);
+            }
+        }
+        
+        public static GameStateRunningPacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            GameStateRunningPacket packet = new GameStateRunningPacket();
+
+            int count = Serializer.Deserialize_uByte(byteArray, ref offset);
+            for (int i = 0; i < count; ++i)
+            {
+                RunningPacketData data = new RunningPacketData();
+                data.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
+                byte other = Serializer.Deserialize_uByte(byteArray, ref offset);
+                data.isInfected = (other & 0b10000000) != 0;
+                data.slotId = (byte)(other & 0b01111111);
+
+                packet.playerList.Add(data);
+            }
+
+            return packet;
+        }
+    }
+
+    public class PlayersStatePacket : BasePacket
+    {
+        PlayersStatePacket() { Opcode = EOpcode.S_PlayersState; }
+
+        public struct PlayerState
+        {
+            public UInt16 playerIndex;
+            public PlayerInput inputs;
+            public Vector3 position;
+            public Quaternion rotation;
+
+            public bool atRest;
+            public Vector3 linearVelocity;
+            public Vector3 angularVelocity;
+
+            public float frontLeftWheelVelocity;
+            public float frontRightWheelVelocity;
+            public float rearLeftWheelVelocity;
+            public float rearRightWheelVelocity;
+        };
+
+        public List<PlayerState> otherPlayerState = new List<PlayerState>();
+
+        // Prediction / Reconciliation
+        // std::uint16_t inputIndex;
+        // PxVec3 localPosition;
+        // PxQuat localRotation;
+        // bool localAtRest;
+        // PxVec3 localLinearVelocity;
+        // PxVec3 localAngularVelocity;
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_uByte(byteArray, (byte)otherPlayerState.Count);
+
+            foreach(PlayerState player in otherPlayerState)
+            {
+                Serializer.Serialize_u16(byteArray, player.playerIndex);
+                player.inputs.Serialize(byteArray);
+
+                Serializer.Serialize_float(byteArray, player.position.x);
+                Serializer.Serialize_float(byteArray, player.position.y);
+                Serializer.Serialize_float(byteArray, player.position.z);
+
+                Serializer.Serialize_float(byteArray, player.rotation.x);
+                Serializer.Serialize_float(byteArray, player.rotation.y);
+                Serializer.Serialize_float(byteArray, player.rotation.z);
+                Serializer.Serialize_float(byteArray, player.rotation.w);
+
+                Serializer.Serialize_uByte(byteArray, (byte)(player.atRest ? 1 : 0));
+                if(!player.atRest)
+                {
+                    Serializer.Serialize_float(byteArray, player.linearVelocity.x);
+                    Serializer.Serialize_float(byteArray, player.linearVelocity.y);
+                    Serializer.Serialize_float(byteArray, player.linearVelocity.z);
+
+                    Serializer.Serialize_float(byteArray, player.angularVelocity.x);
+                    Serializer.Serialize_float(byteArray, player.angularVelocity.y);
+                    Serializer.Serialize_float(byteArray, player.angularVelocity.z);
+
+                    Serializer.Serialize_float(byteArray, player.frontLeftWheelVelocity);
+                    Serializer.Serialize_float(byteArray, player.frontRightWheelVelocity);
+                    Serializer.Serialize_float(byteArray, player.rearLeftWheelVelocity);
+                    Serializer.Serialize_float(byteArray, player.rearRightWheelVelocity);
+                }
+            }
+        }
+
+        public static PlayersStatePacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            PlayersStatePacket packet = new PlayersStatePacket();
+
+            int playerCount = Serializer.Deserialize_uByte(byteArray, ref offset);
+            for(int i = 0; i < playerCount; ++i)
+            {
+                PlayerState player = new PlayerState();
+                player.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
+                player.inputs = PlayerInput.Deserialize(byteArray, ref offset);
+
+                player.position.x = Serializer.Deserialize_float(byteArray, ref offset);
+                player.position.y = Serializer.Deserialize_float(byteArray, ref offset);
+                player.position.z = Serializer.Deserialize_float(byteArray, ref offset);
+
+                player.rotation.x = Serializer.Deserialize_float(byteArray, ref offset);
+                player.rotation.y = Serializer.Deserialize_float(byteArray, ref offset);
+                player.rotation.z = Serializer.Deserialize_float(byteArray, ref offset);
+                player.rotation.w = Serializer.Deserialize_float(byteArray, ref offset);
+
+                player.atRest = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
+                if (!player.atRest)
+                {
+                    player.linearVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.linearVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.linearVelocity.z = Serializer.Deserialize_float(byteArray, ref offset);
+
+                    player.angularVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.angularVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.angularVelocity.z = Serializer.Deserialize_float(byteArray, ref offset);
+
+                    player.frontLeftWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.frontRightWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.rearLeftWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.rearRightWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                }
+
+                packet.otherPlayerState.Add(player);
+            }
+
+            return packet;
+        }
+    }
+
+    public class PlayerInfectedPacket : BasePacket
+    {
+        public PlayerInfectedPacket() { Opcode = EOpcode.S_PlayerInfected; }
+
+        public UInt16 playerIndex;
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_u16(byteArray, playerIndex);
+        }
+
+        public static PlayerInfectedPacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            PlayerInfectedPacket packet = new PlayerInfectedPacket();
+            packet.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
 
             return packet;
         }

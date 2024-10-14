@@ -9,4 +9,7 @@ public class GameRefSCO : ScriptableObject
     public NetworkManager Network;
     public MenuManager Menu;
     public GameManager Game;
+
+    // Data
+    public GameData GameData;
 }

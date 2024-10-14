@@ -31,7 +31,7 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
                     ""name"": ""Acceleration"",
                     ""type"": ""Value"",
                     ""id"": ""803a9c46-f811-4822-8609-044219d33200"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": ""Integer"",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
@@ -40,7 +40,7 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
                     ""name"": ""Turn"",
                     ""type"": ""Value"",
                     ""id"": ""fc27713b-bc55-4086-8548-4f4a8b1aeff8"",
-                    ""expectedControlType"": ""Axis"",
+                    ""expectedControlType"": ""Integer"",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true

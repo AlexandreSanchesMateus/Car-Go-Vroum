@@ -16,9 +16,7 @@ public class NetworkManager : MonoBehaviour
     private ENet6.Host enetHost = null;
     private ENet6.Peer? serverPeer = null;
 
-    private GameData m_gameData = new GameData();
-
-    public static bool IsConnected { get; private set; } = false;
+    public bool IsConnected { get; private set; } = false;
 
     public bool Connect(string addressString)
     {
@@ -81,7 +79,7 @@ public class NetworkManager : MonoBehaviour
             if (!ENet6.Library.Initialize())
                 throw new Exception("Failed to initialize ENet");
 
-            m_gameData.state = GameData.GameState.LOBBY;
+            SCORef.GameData = new GameData();
         }
         else
         {
@@ -138,9 +136,9 @@ public class NetworkManager : MonoBehaviour
                     case ENet6.EventType.Timeout:
                         {
                             Debug.Log("Disconnected from server");
-                            if (m_gameData != null && SCORef != null)
+                            if (SCORef != null)
                             {
-                                switch (m_gameData.state)
+                                switch (SCORef.GameData.state)
                                 {
                                     case GameData.GameState.LOBBY:
                                         if (SCORef.Menu != null)
@@ -165,20 +163,20 @@ public class NetworkManager : MonoBehaviour
                             byte[] array = new byte[evt.Packet.Length];
                             Marshal.Copy(evt.Packet.Data, array, 0, evt.Packet.Length);
 
-                            if (m_gameData != null && SCORef != null)
+                            if (SCORef != null)
                             {
-                                switch (m_gameData.state)
+                                switch (SCORef.GameData.state)
                                 {
                                     case GameData.GameState.LOBBY:
                                         if (SCORef.Menu != null)
-                                            SCORef.Menu.HandleMessage(array, m_gameData);
+                                            SCORef.Menu.HandleMessage(array);
                                         break;
 
                                     case GameData.GameState.WAITING_GAME_START:
                                     case GameData.GameState.GAME_STARTED:
                                     case GameData.GameState.GAME_FINISHED:
                                         if (SCORef.Game != null)
-                                            SCORef.Game.HandleMessage(array, m_gameData);
+                                            SCORef.Game.HandleMessage(array);
                                         break;
 
                                 }
