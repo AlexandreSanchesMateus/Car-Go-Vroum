@@ -4,25 +4,6 @@
 #include <physx/PxPhysicsAPI.h>
 #include <nlohmann/json.hpp>
 
-using namespace physx;
-
-void from_json(const nlohmann::json& j, PxVec3& vec) {
-	vec = PxVec3(j[0], j[1], j[2]);
-}
-
-void from_json(const nlohmann::json& j, PxQuat& quat) {
-	quat = PxQuat(j[0], j[1], j[2], j[3]);
-}
-
-void from_json(const nlohmann::json& j, std::vector<PxVec3>& vertices) {
-	vertices.clear();
-	for (const auto& elem : j) {
-		PxVec3 vec;
-		::from_json(elem, vec);
-		vertices.push_back(vec);
-	}
-}
-
 class PhysicObject {
 public:
 	std::string Type;
@@ -38,75 +19,49 @@ public:
 
 class CapsuleObject : public PhysicObject {
 public:
-	PxVec3 position;
-	PxQuat rotation;
+	physx::PxVec3 position;
+	physx::PxQuat rotation;
 	float radius;
 	float height;
 
-	CapsuleObject() {
-		Type = "Capsule";
-	}
+	CapsuleObject();
 
-	void from_json(const nlohmann::json& j) override {
-		PhysicObject::from_json(j);
-		::from_json(j.at("position"), position);
-		::from_json(j.at("rotation"), rotation);
-		j.at("radius").get_to(radius);
-		j.at("height").get_to(height);
-	}
-
-	void CreatePhysxObject() {
-		physx::PxCapsuleGeometry capsule = physx::PxCapsuleGeometry(physx::PxReal(radius), physx::PxReal(height / 2));
-	}
+	void from_json(const nlohmann::json& j) override;
+	void CreatePhysxObject();
 };
 
 class SphereObject : public PhysicObject {
 public:
-	PxVec3 position;
-	PxVec3 radius;
+	physx::PxVec3 position;
+	float radius;
 
-	SphereObject() {
-		Type = "Sphere";
-	}
+	SphereObject();
 
-	void from_json(const nlohmann::json& j) override {
-		PhysicObject::from_json(j);
-		::from_json(j.at("position"), position);
-		::from_json(j.at("radius"), radius);
-	}
+	void from_json(const nlohmann::json& j) override;
 };
 
 class BoxObject : public PhysicObject {
 public:
-	PxVec3 position;
-	PxVec3 scale;
+	physx::PxVec3 position;
+	physx::PxQuat rotation;
+	physx::PxVec3 extents;
 
-	BoxObject() {
-		Type = "Box";
-	}
+	BoxObject();
 
-	void from_json(const nlohmann::json& j) override {
-		PhysicObject::from_json(j);
-		::from_json(j.at("position"), position);
-		::from_json(j.at("scale"), scale);
-	}
+	void from_json(const nlohmann::json& j) override;
 };
 
 
 class MeshObject : public PhysicObject {
 public:
-	std::vector<PxVec3> vertices;
+	physx::PxVec3 position;
+	physx::PxQuat rotation;
+	std::vector<physx::PxVec3> vertices;
 	std::vector<int> triangles;
 
-	MeshObject() {
-		Type = "Mesh";
-	}
+	MeshObject();
 
-	void from_json(const nlohmann::json& j) override {
-		PhysicObject::from_json(j);
-		::from_json(j.at("vertices"), vertices);
-		j.at("triangles").get_to(triangles);
-	}
+	void from_json(const nlohmann::json& j) override;
 };
 
 class MapData {

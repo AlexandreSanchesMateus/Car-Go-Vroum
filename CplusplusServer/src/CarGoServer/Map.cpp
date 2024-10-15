@@ -1,6 +1,7 @@
 ﻿#include "CarGoServer/Constant.hpp"
 #include <CarGoServer/Map.hpp>
 #include <fstream>
+#include <physx/cooking/PxCooking.h>
 
 Map::Map()
 {
@@ -15,7 +16,7 @@ Map::~Map()
 	Release();
 }
 
-void Map::UpdatePhisics()
+void Map::UpdatePhysics()
 {
 	// update all cars
 }
@@ -86,16 +87,63 @@ void Map::UnserializeMap(std::string mapPath) {
 		if (obj) {
 			if (obj->Type == "Capsule") {
 				CapsuleObject* capsule = dynamic_cast<CapsuleObject*>(obj.get());
-				physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(physx::PxReal(capsule->radius), physx::PxReal(capsule->height / 2));
+
+				physx::PxRigidStatic* capsuleStaticActor = m_gPhysics->createRigidStatic(physx::PxTransform(capsule->position));
+				physx::PxTransform relativePose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0, 0, 1)));
+				physx::PxShape* aCapsuleShape = physx::PxRigidActorExt::createExclusiveShape(*capsuleStaticActor,
+					physx::PxCapsuleGeometry(capsule->radius, capsule->height / 2), *m_gMaterial);
+				aCapsuleShape->setLocalPose(relativePose);
+				m_gScene->addActor(*capsuleStaticActor);
 			}
 			else if (obj->Type == "Sphere") {
-				SphereObject* sphere = dynamic_cast<SphereObject*>
+				SphereObject* sphere = dynamic_cast<SphereObject*>(obj.get());
+
+				physx::PxRigidStatic* sphereStaticActor = m_gPhysics->createRigidStatic(physx::PxTransform(sphere->position));
+
+				physx::PxShape* sphereShape = physx::PxRigidActorExt::createExclusiveShape(*sphereStaticActor,
+					physx::PxSphereGeometry(sphere->radius), *m_gMaterial);
+				
+				m_gScene->addActor(*sphereStaticActor);
 			}
 			else if (obj->Type == "Box") {
+				BoxObject* box = dynamic_cast<BoxObject*>(obj.get());
 
+				physx::PxRigidStatic* boxStaticActor = m_gPhysics->createRigidStatic(physx::PxTransform(box->position, box->rotation));
+
+				physx::PxShape* sphereShape = physx::PxRigidActorExt::createExclusiveShape(*boxStaticActor,
+					physx::PxBoxGeometry(box->extents / 2), *m_gMaterial);
+
+				m_gScene->addActor(*boxStaticActor);
 			}
 			else if (obj->Type == "Mesh") {
+				MeshObject* mesh = dynamic_cast<MeshObject*>(obj.get());
+				physx::PxTriangleMeshDesc meshDesc;
+				meshDesc.points.count = mesh->vertices.size();
+				meshDesc.points.stride = sizeof(physx::PxVec3); 
+				meshDesc.points.data = &mesh->vertices;
 
+				meshDesc.triangles.count = mesh->triangles.size();
+				meshDesc.triangles.stride = 3 * sizeof(physx::PxU32); 
+				meshDesc.triangles.data = &mesh->triangles; 
+
+				physx::PxTolerancesScale scale;
+
+				physx::PxDefaultMemoryOutputStream writeBuffer;
+				physx::PxTriangleMeshCookingResult::Enum result;
+
+				bool status = PxCookTriangleMesh(physx::PxCookingParams(scale), meshDesc, writeBuffer, &result);
+				if (!status) {
+					printf("Failed to cook triangle mesh.\n");
+				}
+
+				physx::PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+				physx::PxTriangleMesh* triangleMesh = m_gPhysics->createTriangleMesh(readBuffer);
+				
+				physx::PxRigidStatic* staticActor = m_gPhysics->createRigidStatic(physx::PxTransform(mesh->position, mesh->rotation));
+
+				physx::PxShape* shape = physx::PxRigidActorExt::createExclusiveShape(*staticActor, physx::PxTriangleMeshGeometry(triangleMesh), *m_gMaterial);
+
+				m_gScene->addActor(*staticActor);
 			}
 		}
 	}

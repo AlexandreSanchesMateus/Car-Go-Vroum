@@ -2,6 +2,7 @@
 
 #include "CarGoServer/GameData.hpp"
 #include <physx/PxPhysicsAPI.h>
+#include <physx/cooking/PxCooking.h>
 #include "MapData.hpp"
 
 
@@ -17,7 +18,7 @@ public:
 	Map& operator=(const Map&) = delete;
 	Map& operator=(Map&&) = delete;
 
-	void UpdatePhisics();
+	void UpdatePhysics();
 	void Clear();
 	void InitPlayers(const GameData& gameData);
 	void InitPhysics();
@@ -38,5 +39,4 @@ private:
 	physx::PxScene* m_gScene = nullptr;
 	physx::PxMaterial* m_gMaterial = nullptr;
 	physx::PxPvd* m_gPvd = nullptr;
-
 };

@@ -62,7 +62,7 @@ public class MenuManager : MonoBehaviour
 
     public void TryConnectToNetwork(string nan)
     {
-        // Vérification des entrées
+        // VÃ©rification des entrÃ©es
         if (string.IsNullOrEmpty(ipInputField.text))
         {
             connectionError.text = "Enter a valid IP adress";

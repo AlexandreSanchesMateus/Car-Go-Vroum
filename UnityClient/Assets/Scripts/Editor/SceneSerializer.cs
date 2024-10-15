@@ -5,6 +5,7 @@ using Unity.Plastic.Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
 public class SceneSerializer : EditorWindow
 {
@@ -59,8 +60,8 @@ public class SceneSerializer : EditorWindow
         return new SphereObject
         {
             Type = "sphere",
-            Position = (obj.transform.position + collider.center).ToFloat3(),
-            radius = (collider.radius * obj.transform.localScale).ToFloat3()
+            position = (obj.transform.position + collider.center).ToFloat3(),
+            radius = collider.radius * Math.Max(obj.transform.localScale.x, Math.Max(obj.transform.localScale.y, obj.transform.localScale.z))
         };
     }
 
@@ -71,9 +72,9 @@ public class SceneSerializer : EditorWindow
         return new BoxObject
         {
             Type = "box",
-            Position = (obj.transform.position + collider.center).ToFloat3(),
-            Rotation = obj.transform.rotation.ToFloat4(),
-            Scale = obj.transform.localScale.Multiply(collider.size).ToFloat3()
+            position = (obj.transform.position + collider.center).ToFloat3(),
+            rotation = obj.transform.rotation.ToFloat4(),
+            extents = obj.transform.localScale.Multiply(collider.size).ToFloat3()
         };
     }
 
@@ -84,8 +85,8 @@ public class SceneSerializer : EditorWindow
         return new CapsuleObject
         {
             Type = "capsule",
-            Position = (obj.transform.position + collider.center).ToFloat3(),
-            Rotation = obj.transform.rotation.ToFloat4(),
+            position = (obj.transform.position + collider.center).ToFloat3(),
+            rotation = obj.transform.rotation.ToFloat4(),
             radius = collider.radius * Math.Max(obj.transform.localScale.x, obj.transform.localScale.z),
         };
     }
@@ -104,6 +105,8 @@ public class SceneSerializer : EditorWindow
         return new MeshObject
         {
             Type = "mesh",
+            position = meshCollider.transform.position.ToFloat3(),
+            rotation = meshCollider.transform.rotation.ToFloat4(),
             vertices = vertices,
             triangles =  meshCollider.sharedMesh.triangles
         };
@@ -125,23 +128,23 @@ public class ObjectData
 [Serializable]
 public class SphereObject : ObjectData
 {
-    public Float3 Position;
-    public Float3 radius;
+    public Float3 position;
+    public float radius;
 }
 
 [Serializable]
 public class BoxObject : ObjectData
 {
-    public Float3 Position;
-    public Float4 Rotation;
-    public Float3 Scale;
+    public Float3 position;
+    public Float4 rotation;
+    public Float3 extents;
 }
 
 [Serializable]
 public class CapsuleObject : ObjectData
 {
-    public Float3 Position;
-    public Float4 Rotation;
+    public Float3 position;
+    public Float4 rotation;
     public float radius;
     public float height;
 }
@@ -149,6 +152,8 @@ public class CapsuleObject : ObjectData
 [Serializable]
 public class MeshObject : ObjectData
 {
+    public Float3 position;
+    public Float4 rotation;
     public Float3[] vertices;
     public int[] triangles;
 }
