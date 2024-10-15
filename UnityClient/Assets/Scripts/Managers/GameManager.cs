@@ -46,13 +46,13 @@ public class GameManager : MonoBehaviour
                 {
                     ownCarController.transform.position = infectedSpawn[player.slotId].position;
                     ownCarController.transform.rotation = infectedSpawn[player.slotId].rotation;
-                    ownCarController.SetInfectedModel();
+                    ownCarController.InitController(true);
                 }
                 else
                 {
                     ownCarController.transform.position = survivorSpawn[player.slotId].position;
                     ownCarController.transform.rotation = survivorSpawn[player.slotId].rotation;
-                    ownCarController.SetSurvivorModel();
+                    ownCarController.InitController(false);
                 }
             }
             else
@@ -61,13 +61,13 @@ public class GameManager : MonoBehaviour
                 {
                     GameObject car = Instantiate<GameObject>(clientCarPrefab, infectedSpawn[player.slotId].position, infectedSpawn[player.slotId].rotation);
                     player.carController = car.GetComponent<CarController>();
-                    player.carController.SetInfectedModel();
+                    player.carController.InitController(true, player.Name);
                 }
                 else
                 {
                     GameObject car = Instantiate<GameObject>(clientCarPrefab, survivorSpawn[player.slotId].position, survivorSpawn[player.slotId].rotation);
                     player.carController = car.GetComponent<CarController>();
-                    player.carController.SetSurvivorModel();
+                    player.carController.InitController(false, player.Name);
                 }
             }
         }

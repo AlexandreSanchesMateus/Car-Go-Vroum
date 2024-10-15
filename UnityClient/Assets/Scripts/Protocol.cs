@@ -23,7 +23,9 @@ namespace NetworkProtocol
         S_StartMovingState,
         S_FinishedState,
         S_PlayersState,
-        S_PlayerInfected
+        S_PlayerInfected,
+
+        S_DebugCollision
     }
 
     public enum DisconnectReport : UInt32
@@ -394,6 +396,25 @@ namespace NetworkProtocol
         {
             PlayerInfectedPacket packet = new PlayerInfectedPacket();
             packet.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
+
+            return packet;
+        }
+    }
+
+    public class DebugCollisionPacket : BasePacket
+    {
+        public DebugCollisionPacket() {  Opcode = EOpcode.S_DebugCollision; }
+
+
+
+        public override void Serialize(List<byte> byteArray)
+        {
+
+        }
+
+        public static DebugCollisionPacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            DebugCollisionPacket packet = new DebugCollisionPacket();
 
             return packet;
         }

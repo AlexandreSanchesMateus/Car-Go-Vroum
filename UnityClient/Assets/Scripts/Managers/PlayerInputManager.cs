@@ -10,6 +10,9 @@ public class PlayerInputManager : MonoBehaviour
     [SerializeField]
     private LookController lookController;
 
+    [SerializeField]
+    private bool activeOnStart = false;
+
     public PlayerInput m_lastInput { get; private set; }
 
     // Action Map
@@ -17,6 +20,9 @@ public class PlayerInputManager : MonoBehaviour
     {
         playerAction = new PlayerInputAction();
         m_lastInput = new PlayerInput();
+
+        if (activeOnStart)
+            EnableCarMap();
 
         // look functions
         playerAction.PlayerCarMap.LookBack.performed += OnLookBack;

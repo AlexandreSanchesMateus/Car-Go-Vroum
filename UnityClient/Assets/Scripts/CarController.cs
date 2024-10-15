@@ -14,6 +14,16 @@ public class CarController : MonoBehaviour
     [SerializeField, BoxGroup("Init"), Required]
     private Skidmarks skidmarksController;
 
+    [SerializeField, BoxGroup("Mat Config")]
+    private MeshRenderer bodyRenderer;
+    [SerializeField, BoxGroup("Mat Config")]
+    private Material redCarMat;
+    [SerializeField, BoxGroup("Mat Config")]
+    private Material blueCarMat;
+
+    [SerializeField, BoxGroup("UI")]
+    private TextMeshProUGUI nameTxt;
+
     [SerializeField, BoxGroup("Wheels")]
     private WheelData LF_wheelData;
     [SerializeField, BoxGroup("Wheels")]
@@ -291,16 +301,6 @@ public class CarController : MonoBehaviour
         m_currentTurnAngle = angle;
     }
 
-    public void SetInfectedModel()
-    {
-        
-    }
-
-    public void SetSurvivorModel()
-    {
-
-    }
-
     public void SoftRecover()
     {
         if (m_canFlip)
@@ -334,5 +334,30 @@ public class CarController : MonoBehaviour
         }
 
         carRb.angularVelocity = new Vector3(0, 0, 0);
+    }
+
+    public void InitController(bool infected, string name = "")
+    {
+        if (nameTxt != null)
+            nameTxt.text = name;
+
+        if(infected)
+            SetInfectedModel();
+    }
+
+    public void SetInfectedModel()
+    {
+        bodyRenderer.material = redCarMat;
+
+        if(nameTxt != null)
+            nameTxt.color = Color.red;
+    }
+
+    public void SetSurvivorModel()
+    {
+        bodyRenderer.material = blueCarMat;
+
+        if (nameTxt != null)
+            nameTxt.color = Color.blue;
     }
 }
