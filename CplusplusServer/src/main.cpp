@@ -9,12 +9,22 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <physx/PxPhysicsAPI.h>
+#include <nlohmann/json.hpp>
 
+#include <iostream>
+#include <fstream>
+#include <CarGoServer/MapData.hpp>
+#include <CarGoServer/Map.hpp>
+#include <CarGoServer/Map.hpp>
+
+using namespace physx;
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData);
 void PurgePlayers(const GameData& gameData);
 ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(GameData gameData);
+void tick_physics(Map& map);
 
 int main()
 {
@@ -24,6 +34,7 @@ int main()
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "/ /___/ ___ |/ _, _/_____/ /_/ / /_/ /   ___/ / /___/ _, _/| |/ / /___/ _, _/\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "\\____/_/  |_/_/ |_|      \\____/\\____/   /____/_____/_/ |_| |___/_____/_/ |_|\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "                                                             by Alexandre SM & Timothe L\n");
+
 
 	fmt::println("\nInitialization ...");
 
@@ -63,9 +74,15 @@ int main()
 	GameData gameData;
 	gameData.state = GameState::LOBBY;
 
+	Map map;
+
+	std::uint32_t nextTick = enet_time_get();
+
 	bool serverOpen = true;
 	while (serverOpen)
 	{
+		std::uint32_t now = enet_time_get();
+
 		ENetEvent event;
 		if (enet_host_service(host, &event, 1) > 0)
 		{
@@ -190,6 +207,11 @@ int main()
 		}
 
 		// Tick logique
+		if (now >= nextTick) 
+		{
+			tick_physics(map);
+			nextTick += TickRate;
+		}
 	}
 
 	for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
@@ -372,4 +394,11 @@ ENetPacket* build_running_state_packet(GameData gameData)
 	}
 
 	return build_packet<GameStateRunningPacket>(packet, ENET_PACKET_FLAG_RELIABLE);
+}
+
+void tick_physics(Map& map)
+{
+
+
+	map.UpdatePhysics(TickRate);
 }

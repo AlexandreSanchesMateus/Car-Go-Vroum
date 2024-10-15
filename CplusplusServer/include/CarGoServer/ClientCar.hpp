@@ -3,7 +3,9 @@
 class ClientCar
 {
 public:
-	ClientCar(const ClientCar&) = delete;
+	~ClientCar();
+
+	ClientCar(const ClientCar&) = default;
 	ClientCar(ClientCar&&) = delete;
 
 	ClientCar& operator=(const ClientCar&) = delete;
@@ -13,7 +15,6 @@ public:
 
 private:
 	ClientCar();
-	~ClientCar();
 
 	// jsp
 	// std::unique_ptr<PxActor> m_actor;
