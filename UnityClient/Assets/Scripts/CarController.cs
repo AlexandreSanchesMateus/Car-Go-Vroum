@@ -11,8 +11,6 @@ public class CarController : MonoBehaviour
 {
     [SerializeField, BoxGroup("Init"), Required]
     private Rigidbody carRb;
-    [SerializeField, BoxGroup("Init"), Required]
-    private Skidmarks skidmarksController;
 
     [SerializeField, BoxGroup("Mat Config")]
     private MeshRenderer bodyRenderer;
@@ -79,6 +77,11 @@ public class CarController : MonoBehaviour
     [SerializeField, BoxGroup("Recover Settings")]
     private float flipingForce = 200f;
 
+    public float FrontLeftWheelVelocity { get { return LF_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
+    public float FrontRightWheelVelocity { get { return RF_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
+    public float RearLeftWheelVelocity { get { return LB_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
+    public float RearRightWheelVelocity { get { return RB_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
+
     // Input variable
     public float AccelerationInput { get; set; } = 0f;
     public bool NeedToBrake { get; set; } = false;
@@ -92,9 +95,13 @@ public class CarController : MonoBehaviour
     private float m_frontRearDistance;
     private float m_rearWheelDistance;
 
+    private Skidmarks m_skidmarksController;
+
 
     private void Start()
     {
+        m_skidmarksController = GameObject.FindGameObjectWithTag("SkidmarkController").GetComponent<Skidmarks>();
+
         m_frontRearDistance = Mathf.Abs(LB_wheelData.GetWheelTrs().localPosition.z - LF_wheelData.GetWheelTrs().localPosition.z);
         m_rearWheelDistance = Mathf.Abs(LB_wheelData.GetWheelTrs().localPosition.x - RB_wheelData.GetWheelTrs().localPosition.x);
     }
@@ -138,16 +145,16 @@ public class CarController : MonoBehaviour
 
         // Update visual
         LF_wheelData.UpdateRotation(carRb);
-        LF_wheelData.UpdateSkidmark(skidmarksController, frictionStartSkidmark);
+        LF_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
 
         RF_wheelData.UpdateRotation(carRb);
-        RF_wheelData.UpdateSkidmark(skidmarksController, frictionStartSkidmark);
+        RF_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
 
         LB_wheelData.UpdateRotation(carRb);
-        LB_wheelData.UpdateSkidmark(skidmarksController, frictionStartSkidmark);
+        LB_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
 
         RB_wheelData.UpdateRotation(carRb);
-        RB_wheelData.UpdateSkidmark(skidmarksController, frictionStartSkidmark);
+        RB_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
     }
 
     public void UpdatePhysics()

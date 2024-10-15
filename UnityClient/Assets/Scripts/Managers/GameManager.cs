@@ -155,6 +155,11 @@ public class GameManager : MonoBehaviour
                         Debug.LogWarning("Can't find infected player");
                 }
                 break;
+
+            case EOpcode.S_DebugCollision:
+                DebugCollisionPacket debugCollisionPacket = DebugCollisionPacket.Deserialize(byteArray, ref offset);
+
+                break;
         }
     }
 
