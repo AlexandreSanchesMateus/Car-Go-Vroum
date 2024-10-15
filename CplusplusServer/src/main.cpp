@@ -25,6 +25,7 @@ void PurgePlayers(const GameData& gameData);
 ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(GameData gameData);
 void UnserializeMap(std::string mapPath);
+void tick_physics(Map& map);
 
 int main()
 {
@@ -76,9 +77,13 @@ int main()
 
 	Map map;
 
+	std::uint32_t nextTick = enet_time_get();
+
 	bool serverOpen = true;
 	while (serverOpen)
 	{
+		std::uint32_t now = enet_time_get();
+
 		ENetEvent event;
 		if (enet_host_service(host, &event, 1) > 0)
 		{
@@ -203,6 +208,11 @@ int main()
 		}
 
 		// Tick logique
+		if (now >= nextTick) 
+		{
+			tick_physics(map);
+			nextTick += TickRate;
+		}
 	}
 
 	for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
@@ -432,4 +442,11 @@ void UnserializeMap(std::string mapPath) {
 			}
 		}
 	}
+}
+
+void tick_physics(Map& map)
+{
+
+
+	map.UpdatePhysics(TickRate);
 }

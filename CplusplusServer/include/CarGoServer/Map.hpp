@@ -18,9 +18,9 @@ public:
 	Map& operator=(const Map&) = delete;
 	Map& operator=(Map&&) = delete;
 
-	void UpdatePhysics();
+	void UpdatePhysics(float elapsedTime);
 	void Clear();
-	void InitPlayers(const GameData& gameData);
+	void InitPlayers(GameData& gameData);
 	void InitPhysics();
 	void UnserializeMap(std::string mapPath);
 	void Release();

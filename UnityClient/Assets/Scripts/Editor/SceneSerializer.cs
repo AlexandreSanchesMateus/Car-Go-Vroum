@@ -47,10 +47,8 @@ public class SceneSerializer : EditorWindow
         }
         finally
         {
-            Debug.Log("Scene " + scene.name + " as been successfully serialized, JSON file as been created under Assets/Export");
+            Debug.Log("Scene " + scene.name + " as been successfully serialized, JSON file as been created under" + path);
         }
-        
-        
     }
 
     static SphereObject SphereToData(GameObject obj)

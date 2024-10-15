@@ -7,7 +7,7 @@
 
 const std::uint16_t AppPort = 14769;
 
-const float TickRate = 50 / 1; // toute les 0.02 second, ou 50 par seconde (unity default FixedUpdate rate)
+const float TickRate = 1 / 50 ; // toute les 0.02 second, ou 50 par seconde (unity default FixedUpdate rate)
 
 const int MinPlayerCount = 2;
 const int MaxPlayerCount = 20;
