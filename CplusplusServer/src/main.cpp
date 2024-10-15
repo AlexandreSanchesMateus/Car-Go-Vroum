@@ -24,7 +24,6 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 void PurgePlayers(const GameData& gameData);
 ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(GameData gameData);
-void UnserializeMap(std::string mapPath);
 void tick_physics(Map& map);
 
 int main()
@@ -395,53 +394,6 @@ ENetPacket* build_running_state_packet(GameData gameData)
 	}
 
 	return build_packet<GameStateRunningPacket>(packet, ENET_PACKET_FLAG_RELIABLE);
-}
-
-
-void UnserializeMap(std::string mapPath) {
-	std::ifstream file(mapPath);
-
-	if (!file.is_open()) {
-		std::cerr << "Erreur lors de l'ouverture du fichier : " << mapPath << std::endl;
-		return;
-	}	
-
-	nlohmann::json data;
-	try {
-		data = nlohmann::json::parse(file);
-	}
-	catch (const std::exception& e) {
-		std::cerr << "Erreur lors de l'analyse du fichier JSON: " << e.what() << std::endl;
-		return;
-	}
-
-	//std::cout << "Donn�es JSON charg�es: " << data.dump(4) << std::endl; // Affichage de mani�re lisible
-
-	MapData mapData;
-	mapData.from_json(data);
-
-	//// Optionnel: Affiche les objets physiques charg�s
-	//for (const auto& obj : mapData.physicObjects) {
-	//	std::cout << "Objet charg� de type: " << obj->Type << std::endl;
-	
-	for (const auto& obj : mapData.physicObjects)
-	{
-		if (obj) {  
-			if (obj->Type == "Capsule") {
-				CapsuleObject* capsule = dynamic_cast<CapsuleObject*>(obj.get());
-				physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(physx::PxReal(capsule->radius), physx::PxReal(capsule->height / 2));
-			}
-			else if (obj->Type == "Sphere") {
-				
-			}
-			else if (obj->Type == "Box"){
-
-			}
-			else if (obj->Type == "Mesh") {
-
-			}
-		}
-	}
 }
 
 void tick_physics(Map& map)
