@@ -13,6 +13,6 @@ struct GameData
 
 	bool waitingStateInit = false;
 
-	std::uint32_t startTimer;
+	std::uint32_t endTimer;
 	std::uint32_t timer;
 };
