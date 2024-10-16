@@ -1,6 +1,7 @@
 ﻿#include "CarGoServer/Constant.hpp"
 #include "CarGoServer/Map.hpp"
 #include "CarGoServer/ClientCar.hpp"
+#include "CarGoServer/GameData.hpp"
 #include <fstream>
 #include <physx/cooking/PxCooking.h>
 #include <random>

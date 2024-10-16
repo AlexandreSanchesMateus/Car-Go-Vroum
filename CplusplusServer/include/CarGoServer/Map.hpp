@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-#include "CarGoServer/GameData.hpp"
 #include <physx/PxPhysicsAPI.h>
 #include <physx/cooking/PxCooking.h>
-#include "MapData.hpp"
+#include "CarGoServer/MapData.hpp"
 
+class GameData;
 
 class Map
 {
