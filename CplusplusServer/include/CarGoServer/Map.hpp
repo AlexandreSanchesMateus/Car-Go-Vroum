@@ -20,6 +20,7 @@ public:
 
 	void UpdatePhysics(float elapsedTime);
 	void Clear();
+	physx::PxRigidDynamic* CreateRigidCar(std::uint8_t spawnSlotId, bool isInfected);
 	void InitPlayers(GameData& gameData);
 	void InitPhysics();
 	void UnserializeMap(std::string mapPath);

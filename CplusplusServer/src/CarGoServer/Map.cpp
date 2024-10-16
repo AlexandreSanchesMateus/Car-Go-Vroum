@@ -33,6 +33,34 @@ void Map::Clear()
 	// remove all cars
 }
 
+physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfected)
+{
+	physx::PxRigidDynamic* dynamicCar;
+
+	if (isInfected)
+		dynamicCar = m_gPhysics->createRigidDynamic(InfectedSpawns[spawnSlotId]);
+	else 
+		dynamicCar = m_gPhysics->createRigidDynamic(SurvivorSpawns[spawnSlotId]);
+
+	physx::PxShape* boxShape1 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.95, 0.3, 2.75)), *m_gMaterial);
+	physx::PxShape* boxShape2 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.7, 0.245, 0.975)), *m_gMaterial);
+	boxShape2->setLocalPose(physx::PxTransform(physx::PxVec3(0.0, 0.5, 0.0)));
+
+	dynamicCar->attachShape(*boxShape1);
+	dynamicCar->attachShape(*boxShape2);
+
+	physx::PxRigidBodyExt::setMassAndUpdateInertia(*dynamicCar, 5.0f);
+
+	dynamicCar->setLinearVelocity(physx::PxVec3(0.0f, 0.0f, 0.0f));
+
+	m_gScene->addActor(*dynamicCar);
+
+	boxShape1->release();
+	boxShape2->release();
+
+	return dynamicCar;
+}
+
 void Map::InitPlayers(GameData& gameData)
 {
 	// determine who is infected and who's not
@@ -67,7 +95,7 @@ void Map::InitPlayers(GameData& gameData)
 	// store in a list 
 	for (const Player& player : gameData.players) 
 	{
-		ClientCar vroum = ClientCar::CreateClientCar(player.spawnSlotId, player.isInfected);
+		ClientCar vroum(CreateRigidCar(player.spawnSlotId, player.isInfected));
 	}
 }
 

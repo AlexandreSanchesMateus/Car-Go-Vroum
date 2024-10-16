@@ -4,6 +4,7 @@
 #include <string>
 #include <physx/foundation/PxVec3.h>
 #include <physx/foundation/PxQuat.h>
+#include <physx/foundation/PxTransform.h>
 
 const std::uint16_t AppPort = 14769;
 
@@ -21,24 +22,24 @@ const float GameDuration = 150.f;
 
 const std::string MapPath = "assets/map.json";
 
-// To change for PxVec3
-const std::tuple<float, float> SurvivorSpawn[] =
-{
-	{0.f, 0.f},
-	{0.f, 0.f},
-	{0.f, 0.f},
-	{0.f, 0.f},
-	{0.f, 0.f}
+const physx::PxTransform SurvivorSpawns[] = {
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
 };
 
-// To change for PxVec3
-const const std::tuple<float, float> InfectedSpawn[] =
-{
-	{0.f, 0.f},
-	{0.f, 0.f},
-	{0.f, 0.f},
-	{0.f, 0.f},
-	{0.f, 0.f}
+const physx::PxTransform InfectedSpawns[] = {
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
 };
 
 enum class GameState
