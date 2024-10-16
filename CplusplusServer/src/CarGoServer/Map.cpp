@@ -10,22 +10,20 @@
 
 Map::Map()
 {
-	// init physicx
-	// load map
+	fmt::println("Initialize map ...");
     InitPhysics();
 	std::srand(std::time(nullptr));
 }
 
 Map::~Map()
 {
-	// unload physicx
 	Release();
 }
 
-void Map::UpdatePhysics(float elapsedTime)
+void Map::SimulatePhysics(float elapsedTime)
 {
-	// update all cars
 	m_gScene->simulate(elapsedTime);
+	m_gScene->fetchResults(true);
 }
 
 void Map::Clear()
@@ -63,7 +61,7 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 
 void Map::InitPlayers(GameData& gameData)
 {
-	// determine who is infected and who's not
+	// Copie id list
 	std::vector<std::uint16_t> playersId;
 	for (const Player& player : gameData.players) 
 	{
@@ -71,39 +69,38 @@ void Map::InitPlayers(GameData& gameData)
 			playersId.push_back(player.index);
 	}
 
-	int infectedCount = round(playersId.size() * InfectedPercentage);
-	for (std::vector<std::uint16_t>::const_iterator i = playersId.begin(); i != playersId.end();) 
+	// From id list, take x id and set to infected
+	int nbInfected = round(playersId.size() * InfectedPercentage);
+	for (int i = 0; i < nbInfected; ++i)
 	{
+		std::vector<std::uint16_t>::iterator it = playersId.begin();
 		int index = std::rand() % playersId.size();
-		if (!gameData.players[index].isInfected)
-		{
-			auto it = std::find_if(gameData.players.begin(), gameData.players.end(), [&](const Player& player) {return player.index == index;});
-			if (it == gameData.players.end())
-			{
-				++i;
-				continue;
-			}
+		std::advance(it, index);
 
-			it->isInfected = true;
-			i = playersId.erase(i);
+		auto playerIt = std::find_if(gameData.players.begin(), gameData.players.end(), [&](const Player& player) {return player.index == *it; });
+		if (playerIt != gameData.players.end())
+		{
+			playerIt->isInfected = true;
+			playersId.erase(it);
 		}
-		else
-			++i;
 	}
 
-	// add cars dynamic body (by static function of ClientCar(int spawnId, bool isInfected))
-	// store in a list 
-	for (const Player& player : gameData.players) 
+	int infectedCount = 0;
+	int survivorCount = 0;
+	for (Player& player : gameData.players)
 	{
-		ClientCar vroum(CreateRigidCar(player.spawnSlotId, player.isInfected));
+		if (player.isInfected)
+			player.spawnSlotId = infectedCount++;
+		else
+			player.spawnSlotId = survivorCount++;
+
+		ClientCar& carController = clientCars.emplace_back(ClientCar(player.index, CreateRigidCar(player.spawnSlotId, player.isInfected), m_gScene, m_gPhysics));
+		player.car = &carController;
 	}
 }
 
-
 void Map::InitPhysics() 
 {
-	fmt::println("Initialize map ...");
-
     m_gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_gAllocator, m_gErrorCallback);
 
     m_gPvd = physx::PxCreatePvd(*m_gFoundation);
@@ -120,7 +117,7 @@ void Map::InitPhysics()
     sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
     m_gScene = m_gPhysics->createScene(sceneDesc);
 
-    m_gMaterial = m_gPhysics->createMaterial(0.5f, 0.5f, 0.6f);  
+    m_gMaterial = m_gPhysics->createMaterial(0.6f, 0.6f, 0.f); // Unity Default Params
 }
 
 void Map::UnserializeMap(std::string mapPath) {
@@ -156,8 +153,7 @@ void Map::UnserializeMap(std::string mapPath) {
 
 				physx::PxRigidStatic* capsuleStaticActor = m_gPhysics->createRigidStatic(physx::PxTransform(capsule->position));
 				physx::PxTransform relativePose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0, 0, 1)));
-				physx::PxShape* aCapsuleShape = physx::PxRigidActorExt::createExclusiveShape(*capsuleStaticActor,
-					physx::PxCapsuleGeometry(capsule->radius, capsule->height / 2), *m_gMaterial);
+				physx::PxShape* aCapsuleShape = physx::PxRigidActorExt::createExclusiveShape(*capsuleStaticActor, physx::PxCapsuleGeometry(capsule->radius, capsule->height / 2), *m_gMaterial);
 				aCapsuleShape->setLocalPose(relativePose);
 				m_gScene->addActor(*capsuleStaticActor);
 			}

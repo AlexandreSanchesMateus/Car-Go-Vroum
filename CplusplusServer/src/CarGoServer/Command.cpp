@@ -48,7 +48,7 @@ std::optional<Command::Report> Command::HandleEvent()
 			fmt::println("");
 
 			std::unordered_map<std::string, Action>::const_iterator it;
-			int spacer = m_prompt.find(' ');
+			std::size_t spacer = m_prompt.find(' ');
 			if (spacer != std::string::npos)
 			{
 				std::string str = m_prompt.substr(0, spacer);
@@ -100,7 +100,7 @@ std::optional<Command::Report> Command::HandleEvent()
 
 					break;
 				case Action::Easter:
-					fmt::println("                              @@%@         @@@@@@@@@@@@@@@@@@\n");
+					fmt::println("                              @@%@         @@@@@@@@@@@@@@@@@@");
 					fmt::println("                               @@@@@@@@@@%%%################%%@@");
 					fmt::println("                           *#@@@@@%%###########################%@");
 					fmt::println("                         @@%###################################%%@");

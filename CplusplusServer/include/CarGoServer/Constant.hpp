@@ -6,19 +6,20 @@
 #include <physx/foundation/PxQuat.h>
 #include <physx/foundation/PxTransform.h>
 
-const std::uint16_t AppPort = 14769;
+constexpr std::uint16_t AppPort = 14769;
 
-const float TickRate = 1 / 50 ; // toute les 0.02 second, ou 50 par seconde (unity default FixedUpdate rate)
+constexpr std::uint32_t TickRate = 50; // toute les 0.02 second, ou 50 par seconde (unity default FixedUpdate rate)
+constexpr std::uint32_t TickDelay = 1000 / TickRate;
 
-const int MinPlayerCount = 2;
-const int MaxPlayerCount = 20;
+constexpr int MinPlayerCount = 2;
+constexpr int MaxPlayerCount = 20;
 
-const float InfectedPercentage = 0.25;
+constexpr float InfectedPercentage = 0.25;
 
 // en secondes
-const float WaitAfterSurvivorMove = 3.f;
-const float WaitAfterInfectedMove = 4.f;
-const float GameDuration = 150.f;
+constexpr float WaitAfterSurvivorMove = 3.f;
+constexpr float WaitAfterInfectedMove = 4.f;
+constexpr float GameDuration = 150.f;
 
 const std::string MapPath = "assets/map.json";
 

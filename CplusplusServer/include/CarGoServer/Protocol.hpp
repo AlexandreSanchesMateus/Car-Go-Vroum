@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 #include <enet6/enet.h>
+#include <physx/foundation/PxVec3.h>
+#include <physx/foundation/PxQuat.h>
 
-// #include <PxQuat.h>
-// #include <PxVec3.h>
 
 enum class Opcode : std::uint8_t
 {
@@ -174,22 +174,33 @@ struct PlayersStatePacket
 	{
 		std::uint16_t playerIndex;
 		PlayerInput inputs;
-		// PxVec3 position;
-		// PxQuat rotation;
-		// bool atRest;
-		// PxVec3 linearVelocity;
-		// PxVec3 angularVelocity;
+		physx::PxVec3 position;
+		physx::PxQuat rotation;
+		bool atRest;
+
+		physx::PxVec3 linearVelocity;
+		physx::PxVec3 angularVelocity;
+
+		float frontLeftWheelVelocity;
+		float frontRightWheelVelocity;
+		float rearLeftWheelVelocity;
+		float rearRightWheelVelocity;
 	};
 
 	std::vector<PlayerState> otherPlayersState;
 
 	// Prediction / Reconciliation
-	// std::uint16_t inputIndex;
-	// PxVec3 localPosition;
-	// PxQuat localRotation;
-	// bool localAtRest;
-	// PxVec3 localLinearVelocity;
-	// PxVec3 localAngularVelocity;
+	//std::uint16_t inputIndex;
+	physx::PxVec3 localPosition;
+	physx::PxQuat localRotation;
+	bool localAtRest;
+	physx::PxVec3 localLinearVelocity;
+	physx::PxVec3 localAngularVelocity;
+
+	float localFrontLeftWheelVelocity;
+	float localFrontRightWheelVelocity;
+	float localRearLeftWheelVelocity;
+	float localRearRightWheelVelocity;
 
 	void Serialize(std::vector<std::uint8_t>& byteArray) const;
 	static PlayersStatePacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);

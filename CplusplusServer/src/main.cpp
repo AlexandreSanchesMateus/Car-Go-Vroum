@@ -9,21 +9,14 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
-//#include <physx/PxPhysicsAPI.h>
-#include <nlohmann/json.hpp>
 
-#include <iostream>
-#include <fstream>
-
-
-//using namespace physx;
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData);
 void PurgePlayers(const GameData& gameData);
 ENetPacket* build_game_data_packet(const GameData& gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(const GameData& gameData);
-void tick_physics(Map& map);
-void tick_logic(GameData& gameData);
+void tick_physics(GameData& gameData, Map& map, float deltaTime);
+void tick_logic(GameData& gameData, std::uint32_t now);
 
 int main()
 {
@@ -73,12 +66,14 @@ int main()
 
 	Command cmdPrompt;
 
-	std::uint32_t nextTick = enet_time_get();
+	std::uint32_t now = enet_time_get();
+	std::uint32_t nextTick = now + TickDelay;
+	std::uint32_t lastTick = now;
 
 	bool serverOpen = true;
 	while (serverOpen)
 	{
-		std::uint32_t now = enet_time_get();
+		now = enet_time_get();
 
 		ENetEvent event;
 		if (enet_host_service(host, &event, 1) > 0)
@@ -206,9 +201,13 @@ int main()
 		// Tick logique
 		if (now >= nextTick) 
 		{
-			tick_logic(gameData);
-			tick_physics(gameData.map);
-			nextTick += TickRate;
+			float deltaTime = (now - lastTick) / 1000.0f;
+
+			tick_logic(gameData, now);
+			tick_physics(gameData, gameData.map, deltaTime);
+
+			lastTick = now;
+			nextTick += TickDelay;
 		}
 	}
 
@@ -399,14 +398,73 @@ ENetPacket* build_running_state_packet(const GameData& gameData)
 	return build_packet<GameStateRunningPacket>(packet, ENET_PACKET_FLAG_RELIABLE);
 }
 
-void tick_physics(Map& map)
+ENetPacket* build_player_state_packet(const GameData& gameData, const Player& targetPlayer)
 {
+	if (targetPlayer.car == nullptr)
+		throw std::runtime_error("Player doesn't have a car");
 
+	PlayersStatePacket packet;
+	for (const Player& other : gameData.players)
+	{
+		if (other.index == targetPlayer.index)
+			continue;
 
-	map.UpdatePhysics(TickRate);
+		PlayersStatePacket::PlayerState playerState;
+		playerState.inputs = other.lastInput;
+
+		playerState.position = other.car->GetPhysixActor().getGlobalPose().p;
+		playerState.rotation = other.car->GetPhysixActor().getGlobalPose().q;
+
+		playerState.linearVelocity = other.car->GetPhysixActor().getLinearVelocity();
+		playerState.angularVelocity = other.car->GetPhysixActor().getAngularVelocity();
+
+		playerState.atRest = playerState.linearVelocity.magnitude() <= 0.01f && playerState.angularVelocity.magnitude() <= 0.01f;
+
+		if (!playerState.atRest)
+		{
+			playerState.frontLeftWheelVelocity = other.car->GetFrontLeftWheelVelocity();
+			playerState.frontRightWheelVelocity = other.car->GetFrontRightWheelVelocity();
+			playerState.rearLeftWheelVelocity = other.car->GetRearLeftWheelVelocity();
+			playerState.rearRightWheelVelocity = other.car->GetRearRightWheelVelocity();
+		}
+
+		packet.otherPlayersState.push_back(playerState);
+	}
+
+	packet.localPosition = targetPlayer.car->GetPhysixActor().getGlobalPose().p;
+	packet.localRotation = targetPlayer.car->GetPhysixActor().getGlobalPose().q;
+
+	packet.localLinearVelocity = targetPlayer.car->GetPhysixActor().getLinearVelocity();
+	packet.localAngularVelocity = targetPlayer.car->GetPhysixActor().getAngularVelocity();
+
+	packet.localAtRest = packet.localLinearVelocity.magnitude() <= 0.01f && packet.localAngularVelocity.magnitude() <= 0.01f;
+
+	if (!packet.localAtRest)
+	{
+		packet.localFrontLeftWheelVelocity = targetPlayer.car->GetFrontLeftWheelVelocity();
+		packet.localFrontRightWheelVelocity = targetPlayer.car->GetFrontRightWheelVelocity();
+		packet.localRearLeftWheelVelocity = targetPlayer.car->GetRearLeftWheelVelocity();
+		packet.localRearRightWheelVelocity = targetPlayer.car->GetRearRightWheelVelocity();
+	}
+
+	return build_packet<PlayersStatePacket>(packet, 0);
 }
 
-void tick_logic(GameData& gameData)
+void tick_physics(GameData& gameData, Map& map, float deltaTime)
+{
+	if (gameData.state == GameState::LOBBY)
+		return;
+
+	for (Player& player : gameData.players)
+	{
+		if(player.car != nullptr)
+			player.car->UpdatePhysics(player.lastInput, deltaTime);
+	}
+
+	map.SimulatePhysics(deltaTime);
+}
+
+void tick_logic(GameData& gameData, std::uint32_t now)
 {
 	switch (gameData.state)
 	{
@@ -422,7 +480,7 @@ void tick_logic(GameData& gameData)
 				// send move not infected
 				moveStatePacket.moveInfected = false;
 				gameData.waitingStateInit = true;
-				gameData.timer = enet_time_get();
+				gameData.timer = now;
 				gameData.endTimer = gameData.timer + WaitAfterInfectedMove * 1000;
 			}
 			else
@@ -430,7 +488,7 @@ void tick_logic(GameData& gameData)
 				// send move Infected
 				moveStatePacket.moveInfected = true;
 				gameData.state = GameState::GAME_STARTED;
-				gameData.timer = enet_time_get();
+				gameData.timer = now;
 				gameData.endTimer = gameData.timer + GameDuration * 1000;
 			}
 
@@ -442,7 +500,7 @@ void tick_logic(GameData& gameData)
 			}
 		}
 		else
-			gameData.timer = enet_time_get();
+			gameData.timer = now;
 
 		break;
 
@@ -452,7 +510,7 @@ void tick_logic(GameData& gameData)
 			// fin de la partie
 		}
 		else
-			gameData.timer = enet_time_get();
+			gameData.timer = now;
 
 		// ne rien faire de plus car s'il y a eu une collision la physic s'en charge
 		// dans ce cas regarder le nombre de joueur en vie

@@ -1,10 +1,11 @@
 ﻿#pragma once
 
+#include "CarGoServer/MapData.hpp"
+#include "CarGoServer/ClientCar.hpp"
 #include <physx/PxPhysicsAPI.h>
 #include <physx/cooking/PxCooking.h>
-#include "CarGoServer/MapData.hpp"
 
-class GameData;
+struct GameData;
 
 class Map
 {
@@ -18,7 +19,7 @@ public:
 	Map& operator=(const Map&) = delete;
 	Map& operator=(Map&&) = delete;
 
-	void UpdatePhysics(float elapsedTime);
+	void SimulatePhysics(float elapsedTime);
 	void Clear();
 	physx::PxRigidDynamic* CreateRigidCar(std::uint8_t spawnSlotId, bool isInfected);
 	void InitPlayers(GameData& gameData);
@@ -30,7 +31,11 @@ public:
 	physx::PxPhysics* GetPhysics() const;
 
 private:
+	// PAS UTILISE !
 	MapData m_mapData;
+
+	std::vector<ClientCar> clientCars;
+
 	physx::PxDefaultAllocator m_gAllocator;
 	physx::PxDefaultErrorCallback m_gErrorCallback;
 

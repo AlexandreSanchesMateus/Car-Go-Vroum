@@ -1,39 +1,186 @@
-#include "CarGoServer/Constant.hpp"
 #include "CarGoServer/ClientCar.hpp"
+#include "CarGoServer/Constant.hpp"
+#include "CarGoServer/PlayerInput.hpp"
 
-ClientCar::ClientCar(physx::PxRigidDynamic* dynamicCar, physx::PxScene* scene, physx::PxPhysics* physics)
+ClientCar::ClientCar(std::uint16_t playerIndex, physx::PxRigidDynamic* dynamicCar, physx::PxScene* scene, physx::PxPhysics* physics)
+	: m_playerIndex(playerIndex), m_actor(dynamicCar), m_gScene(scene), m_gPhysics(physics), m_restDistance(0.8f),
+	m_springStrenght(6000.f), m_damping(240.f), m_tireMass(28.f), m_engineTorque(1800.f),	m_topSpeed(40.f), m_topReverseSpeed(18.f),
+	m_breakForce(2000.f), m_noInputFrictionForce(0.9f), m_steeringSpeed(0.45f), m_steeringAngle(25.f), m_recoverForce(7.f),
+	m_timeBeforeFliping(0.6f), m_flipingForce(7.f)
 {
-	m_actor = dynamicCar;
-	m_gScene = scene;
-	m_gPhysics = physics;
+	m_frontLeftWheel.suspensionVelocity = 0.f;
+	m_frontLeftWheel.wheelTrs = physx::PxTransform(-0.9f, -0.13f, 1.85f);
+
+	m_frontRightWheel.suspensionVelocity = 0.f;
+	m_frontRightWheel.wheelTrs = physx::PxTransform(0.9f, -0.13f, 1.85f);
+
+	m_rearLeftWheel.suspensionVelocity = 0.f;
+	m_rearLeftWheel.wheelTrs = physx::PxTransform(-0.9f, -0.13f, -1.35f);
+
+	m_rearRightWheel.suspensionVelocity = 0.f;
+	m_rearRightWheel.wheelTrs = physx::PxTransform(0.9f, -0.13f, -1.35f);
+
+	m_canFlip = false;
 }
 
 ClientCar::~ClientCar()
 {
-
 }
 
-void ClientCar::UpdatePhysics()
+void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 {            
-	
+	bool fullyGrounded = true;
+
+	fullyGrounded &= UpdateWheelPhysics(m_frontLeftWheel, true, inputs, deltaTime);
+	fullyGrounded &= UpdateWheelPhysics(m_frontRightWheel, true, inputs, deltaTime);
+	fullyGrounded &= UpdateWheelPhysics(m_rearLeftWheel, false, inputs, deltaTime);
+	fullyGrounded &= UpdateWheelPhysics(m_rearRightWheel, false, inputs, deltaTime);
+
+	physx::PxVec3 linearVelocity = m_actor->getLinearVelocity();
+	if (fullyGrounded)
+	{
+		if (inputs.acceleration == 0)
+		{
+			m_actor->setCMassLocalPose(physx::PxTransform(0, -0.05f, 0.25f));
+
+			physx::PxVec3 forward = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 0.0f, 1.0f));
+			float carSpeed = forward.dot(linearVelocity);
+			m_actor->addForce(forward * -carSpeed * 4, physx::PxForceMode::eIMPULSE);
+		}
+		else
+			m_actor->setCMassLocalPose(physx::PxTransform(0, -0.05f, -0.04f));
+	}
+	else if(inputs.softRecover)
+	{
+		// TODO FLIP CAR
+
+		physx::PxVec3 up = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 1.0f, 0.0f));
+		if (up.dot(linearVelocity) < 0.6f && linearVelocity.magnitude() < 0.05f)
+		{
+
+		}
+	}
 }
 
-bool ClientCar::UpdateWheelPhysics()
+const physx::PxRigidDynamic& ClientCar::GetPhysixActor() const
 {
-	physx::PxTransform wheelPose = m_actor->getGlobalPose(); 
+	return *m_actor;
+}
 
-	physx::PxQuat rotation = wheelPose.q;
+float ClientCar::GetFrontLeftWheelVelocity() const
+{
+	return m_frontLeftWheel.suspensionVelocity;
+}
 
-	physx::PxVec3 localDown(0.0f, -1.0f, 0.0f);  
-	physx::PxVec3 down = rotation.rotate(localDown);
+float ClientCar::GetFrontRightWheelVelocity() const
+{
+	return m_frontRightWheel.suspensionVelocity;
+}
 
-	const physx::PxU32 bufferSize = 256;        // [in] size of 'hitBuffer'
-	physx::PxRaycastHit hitBuffer[bufferSize];  // [out] User provided buffer for results
-	physx::PxRaycastBuffer buf(hitBuffer, bufferSize);
+float ClientCar::GetRearLeftWheelVelocity() const
+{
+	return m_rearLeftWheel.suspensionVelocity;
+}
 
-	// Raycast against all static & dynamic objects (no filtering)
-	// The main result from this call are all hits along the ray, stored in 'hitBuffer'
-	m_gScene->raycast(wheelPose.p, down, m_restDistance, buf);
+float ClientCar::GetRearRightWheelVelocity() const
+{
+	return m_rearRightWheel.suspensionVelocity;
+}
 
-	return buf.nbTouches > 0;
+bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const PlayerInput& inputs, float deltaTime)
+{
+	physx::PxVec3 startPos = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p);
+	physx::PxVec3 dir = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, -1.0f, 0.0f));
+
+
+	physx::PxRaycastBuffer hitBuffer;
+	if (m_gScene->raycast(startPos, dir, m_restDistance, hitBuffer) && hitBuffer.getNbAnyHits() > 0)
+	{
+		physx::PxVec3 physicForce(0.f, 0.f, 0.f);
+
+		physx::PxVec3 forward = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 0.0f, 1.0f));
+		float carSpeed = forward.dot(m_actor->getLinearVelocity());
+
+		// ---------------------- Forward Force (acceleration / break) ----------------------
+		physx::PxTransform globalWheelTrs = m_actor->getGlobalPose() * wheelData.wheelTrs;
+		physx::PxVec3 wheelForward = globalWheelTrs.q.rotate(physx::PxVec3(0.0f, 0.0f, 1.0f));
+
+		/*if (inputs.brake)
+		{
+			if (carSpeed < -0.1f)
+				physicForce = wheelForward * m_breakForce;
+			else if (carSpeed > 0.1f)
+				physicForce = -wheelForward * m_breakForce;
+			else
+				physicForce = forward * -carSpeed * 600;
+		}
+		else
+		{
+			if (inputs.acceleration > 0)
+			{
+				float normelizeSpeed = Clamp((std::abs(carSpeed) / m_topSpeed), 0.f, 1.f);
+
+				if (carSpeed < 0.f)
+					physicForce = wheelForward * m_breakForce;
+				else if (normelizeSpeed < 1.f)
+				{
+					// Move forward
+					float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_engineTorque;
+					physicForce = wheelForward * availableTorque;
+				}
+			}
+			else if (inputs.acceleration < 0)
+			{
+				float normelizeSpeed = Clamp((std::abs(carSpeed) / m_topReverseSpeed), 0.f, 1.f);
+
+				if (carSpeed > 0.f)
+					physicForce = -wheelForward * m_breakForce;
+				else if (normelizeSpeed < 1.f)
+				{
+					// Move backward
+					float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_engineTorque * -0.8f;
+					physicForce = wheelForward * availableTorque;
+				}
+			}
+		}*/
+
+		// -------------------------- Vertical Force (suspension) --------------------------
+		physx::PxVec3 up = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 1.0f, 0.0f));
+
+		float offset = m_restDistance - hitBuffer.block.distance;
+		float currentVelocity = (wheelData.suspensionVelocity - offset) / deltaTime;
+		physicForce += up * ((offset * m_springStrenght) - (currentVelocity * m_damping));
+		wheelData.suspensionVelocity = offset;
+
+		// ------------------------ Horizontal Force (side friction) ------------------------
+		physx::PxVec3 globalPoint = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p);
+		physx::PxVec3 relativePosition = globalPoint - m_actor->getGlobalPose().p;
+
+		physx::PxVec3 wheelVelocity = m_actor->getLinearVelocity() + m_actor->getAngularVelocity().cross(relativePosition);
+		physx::PxVec3 wheelRight = globalWheelTrs.q.rotate(physx::PxVec3(1.0f, 0.0f, 0.0f));
+
+		float steeringVel = wheelRight.dot(wheelVelocity);
+		float friction = std::abs(steeringVel / wheelVelocity.magnitude());
+		float desireVelChange = -steeringVel * 1.f;
+		//float desireVelChange = -steeringVel * frictionCurve.Evaluate(friction);
+		float desireAccel = desireVelChange / deltaTime;
+
+		physicForce += wheelRight * m_tireMass * desireAccel;
+
+		m_actor->addForce(physicForce);
+
+		physx::PxVec3 globalPosition = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p) - m_actor->getGlobalPose().transform(m_actor->getCMassLocalPose().p);
+		m_actor->getGlobalPose().p + m_actor->getCMassLocalPose().p;
+
+		physx::PxVec3 torque = globalPosition.cross(physicForce);
+		m_actor->addTorque(torque);
+
+		return true;
+	}
+
+	return false;
+}
+
+float ClientCar::Clamp(float n, float lower, float upper) {
+	return std::max(lower, std::min(n, upper));
 }

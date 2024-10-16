@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <vector>
 #include <iostream>
 #include <physx/PxPhysicsAPI.h>
@@ -68,7 +68,7 @@ class MapData {
 public:
 	std::vector<std::shared_ptr<PhysicObject>> physicObjects;
 
-	// Fonction pour créer un objet physique en fonction du type
+	// Fonction pour crÃ©er un objet physique en fonction du type
 	std::shared_ptr<PhysicObject> createPhysicObject(const std::string& type) {
 		if (type == "Capsule") {
 			return std::make_shared<CapsuleObject>();
@@ -91,12 +91,12 @@ public:
 	void from_json(const nlohmann::json& j) {
 		if (j.contains("physicObjects")) {
 			for (const auto& item : j.at("physicObjects")) {
-				// Vérification du type et création de l'objet
+				// VÃ©rification du type et crÃ©ation de l'objet
 				std::string type = item.at("Type").get<std::string>();
-				auto obj = createPhysicObject(type); // Appel à createPhysicObject
+				auto obj = createPhysicObject(type); // Appel Ã  createPhysicObject
 
 				if (obj) {
-					// Désérialise l'objet
+					// DÃ©sÃ©rialise l'objet
 					obj->from_json(item);
 					physicObjects.push_back(obj); // Ajoute l'objet au vecteur
 				}

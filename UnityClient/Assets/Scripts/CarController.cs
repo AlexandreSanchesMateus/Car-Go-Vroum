@@ -177,7 +177,7 @@ public class CarController : MonoBehaviour
                 carRb.centerOfMass = new Vector3(0, -0.05f, 0.25f);
 
                 float carSpeed = Vector3.Dot(transform.forward, carRb.velocity);
-                carRb.AddForce(transform.forward * -carSpeed * 200 * Time.fixedDeltaTime, ForceMode.Impulse);
+                carRb.AddForce(transform.forward * -carSpeed * 4, ForceMode.Impulse);
             }
             else
                 carRb.centerOfMass = new Vector3(0, -0.05f, -0.04f);
