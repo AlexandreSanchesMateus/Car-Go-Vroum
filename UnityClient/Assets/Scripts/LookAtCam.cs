@@ -18,7 +18,7 @@ public class LookAtCam : MonoBehaviour
     {
         if (m_camera != null)
         {
-            Vector3 dir = m_camera.position - m_rectTransform.position;
+            Vector3 dir = m_rectTransform.position - m_camera.position;
             m_rectTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
         }
     }

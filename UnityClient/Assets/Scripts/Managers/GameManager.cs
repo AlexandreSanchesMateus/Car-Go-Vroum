@@ -30,18 +30,46 @@ public class GameManager : MonoBehaviour
     [SerializeField, BoxGroup("UI")]
     private TextMeshProUGUI infoTxt;
 
-    private Player ownPlayer = null;
+    private Player m_ownPlayer = null;
+    private float m_gameDuration;
+
+    private bool m_gameEnded = false;
 
     //private List<PlayerInput> m_playerInputs = new List<PlayerInput>();
     //private UInt16 m_inputIndex = 1;
 
-    private void Awake()
+    private void Start()
     {
+        SCORef.GameData = new GameData();
+        SCORef.GameData.ownPlayerIndex = 0;
+        SCORef.GameData.players = new List<Player>();
+
+        Player pl1 = new Player(0, "alex");
+        pl1.isInfected = true;
+        pl1.slotId = 0;
+        SCORef.GameData.players.Add(pl1);
+
+        Player pl2 = new Player(1, "nic");
+        pl2.isInfected = true;
+        pl2.slotId = 1;
+        SCORef.GameData.players.Add(pl2);
+
+        Player pl3 = new Player(2, "tim");
+        pl3.isInfected = false;
+        pl3.slotId = 0;
+        SCORef.GameData.players.Add(pl3);
+
+        Player pl4 = new Player(3, "jerome");
+        pl4.isInfected = false;
+        pl4.slotId = 1;
+        SCORef.GameData.players.Add(pl4);
+
+
         // Manually simutale physics
         Physics.simulationMode = SimulationMode.Script;
         SCORef.GameData.state = GameData.GameState.WAITING_GAME_START;
 
-        ownPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == SCORef.GameData.ownPlayerIndex; });
+        m_ownPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == SCORef.GameData.ownPlayerIndex; });
 
         foreach (Player player in SCORef.GameData.players)
         {
@@ -81,7 +109,10 @@ public class GameManager : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (inputManager != null && SCORef != null && SCORef.Network != null)
+        if (m_gameEnded)
+            return;
+
+        /*if (inputManager != null && SCORef != null && SCORef.Network != null)
         {
             PlayerInputPacket packet = new PlayerInputPacket();
             packet.inputs = inputManager.m_lastInput;
@@ -90,11 +121,11 @@ public class GameManager : MonoBehaviour
             // m_playerInputs.Add(inputManager.m_lastInput);
 
             SCORef.Network.BuildAndSendPacketToNetwork<PlayerInputPacket>(packet, ENet6.PacketFlags.None, 0);
-        }
+        }*/
 
-        foreach(Player player in SCORef.GameData.players)
+        foreach (Player player in SCORef.GameData.players)
         {
-            if(player.carController != null)
+            if (player.carController != null)
                 player.carController.UpdatePhysics();
         }
 
@@ -125,40 +156,90 @@ public class GameManager : MonoBehaviour
                 break;
 
             case EOpcode.S_StartMovingState:
-                GameStateStartMovePacket gameStateStartMovePacket = GameStateStartMovePacket.Deserialize(byteArray, ref offset);
-
-                if (ownPlayer.isInfected)
                 {
-                    if (gameStateStartMovePacket.moveInfected)
+                    GameStateStartMovePacket gameStateStartMovePacket = GameStateStartMovePacket.Deserialize(byteArray, ref offset);
+
+                    if (m_ownPlayer.isInfected)
+                    {
+                        if (gameStateStartMovePacket.moveInfected)
+                        {
+                            inputManager.EnableCarMap();
+                            StopAllCoroutines();
+                            StartCoroutine(GoMsg(false));
+                        }
+                        else
+                            StartCoroutine(InitCountDown());
+
+                    }
+                    else if (!gameStateStartMovePacket.moveInfected)
+                    {
                         inputManager.EnableCarMap();
-                    else
-                        StartCoroutine(CountDown());
-
+                        StartCoroutine(GoMsg(true));
+                    }
                 }
-                else if(!gameStateStartMovePacket.moveInfected)
+                break;
+
+            case EOpcode.S_StartGameState:
                 {
-                    inputManager.EnableCarMap();
-                    StartCoroutine(GoMsg());
+                    GameStateStartPacket gameStateStartPacket = GameStateStartPacket.Deserialize(byteArray, ref offset);
+                    m_gameDuration = gameStateStartPacket.gameDuration / 1000.0f;
+                    StartCoroutine(CountDown());
                 }
                 break;
 
             case EOpcode.S_FinishedState:
+                {
+                    GameStateFinishPacket gameStateFinishPacket = GameStateFinishPacket.Deserialize(byteArray, ref offset);
+                    if (gameStateFinishPacket.infectedWins)
+                        infoTxt.text = "THE INFECTED WINS";
+                    else
+                        infoTxt.text = "THE SURVIVORS WINS";
+
+                    m_gameEnded = true;
+                    inputManager.DisableCarMap();
+                    StartCoroutine(ReturnToLobby());
+                }
                 break;
 
             case EOpcode.S_PlayersState:
-                PlayersStatePacket playersStatePacket = PlayersStatePacket.Deserialize(byteArray,ref offset);
-
-                foreach(PlayersStatePacket.PlayerState playerState in playersStatePacket.otherPlayerState)
                 {
-                    Player targetPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == playerState.playerIndex; });
-                    if(targetPlayer != null)
-                    {
+                    PlayersStatePacket playersStatePacket = PlayersStatePacket.Deserialize(byteArray, ref offset);
 
+                    foreach (PlayersStatePacket.PlayerState playerState in playersStatePacket.otherPlayerState)
+                    {
+                        Player targetPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == playerState.playerIndex; });
+                        if (targetPlayer != null && targetPlayer.carController != null)
+                        {
+                            // position / rotation
+                            targetPlayer.carController.gameObject.transform.position = playerState.position;
+                            targetPlayer.carController.gameObject.transform.rotation = playerState.rotation;
+
+                            // velocity
+                            if (playerState.atRest)
+                            {
+                                targetPlayer.carController.CarRb.velocity = Vector3.zero;
+                                targetPlayer.carController.CarRb.angularVelocity = Vector3.zero;
+
+                                // wheels
+                                targetPlayer.carController.FrontLeftWheelVelocity = 0f;
+                                targetPlayer.carController.FrontRightWheelVelocity = 0f;
+                                targetPlayer.carController.RearLeftWheelVelocity = 0f;
+                                targetPlayer.carController.RearRightWheelVelocity = 0f;
+                            }
+                            else
+                            {
+                                targetPlayer.carController.CarRb.velocity = playerState.linearVelocity;
+                                targetPlayer.carController.CarRb.angularVelocity = playerState.angularVelocity;
+
+                                // wheels
+                                targetPlayer.carController.FrontLeftWheelVelocity = playerState.frontLeftWheelVelocity;
+                                targetPlayer.carController.FrontRightWheelVelocity = playerState.frontRightWheelVelocity;
+                                targetPlayer.carController.RearLeftWheelVelocity = playerState.frontLeftWheelVelocity;
+                                targetPlayer.carController.RearRightWheelVelocity = playerState.rearRightWheelVelocity;
+                            }
+                        }
                     }
                 }
-
-                // traitement des inputs
-                // réconciliation
                 break;
 
             case EOpcode.S_PlayerInfected:
@@ -177,8 +258,10 @@ public class GameManager : MonoBehaviour
                 break;
 
             case EOpcode.S_DebugCollision:
-                DebugCollisionPacket debugCollisionPacket = DebugCollisionPacket.Deserialize(byteArray, ref offset);
-
+                {
+                    DebugCollisionPacket debugCollisionPacket = DebugCollisionPacket.Deserialize(byteArray, ref offset);
+                    // TODO
+                }
                 break;
         }
     }
@@ -191,21 +274,41 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene(0);
     }
 
-    private IEnumerator CountDown()
+    private IEnumerator InitCountDown()
     {
         infoTxt.text = "3";
         yield return new WaitForSeconds(1);
         infoTxt.text = "2";
         yield return new WaitForSeconds(1);
         infoTxt.text = "1";
-        yield return new WaitForSeconds(1);
-        StartCoroutine(GoMsg());
     }
 
-    private IEnumerator GoMsg()
+    private IEnumerator GoMsg(bool pendingMsg)
     {
         infoTxt.text = "GO";
         yield return new WaitForSeconds(1.5f);
-        infoTxt.gameObject.SetActive(false);
+        if(pendingMsg)
+            infoTxt.text = "- RESPITE PHASE -";
+        else
+            infoTxt.gameObject.SetActive(false);
+    }
+
+    private IEnumerator CountDown()
+    {
+        while(m_gameDuration >= 0)
+        {
+            int seconds = (int)m_gameDuration % 60;
+            int minutes = (int)m_gameDuration / 60;
+
+            infoTxt.text = "Time left -    " + minutes.ToString("D2") + ":" + seconds.ToString("D2");
+            --m_gameDuration;
+            yield return new WaitForSeconds(1);
+        }
+    }
+
+    private IEnumerator ReturnToLobby()
+    {
+        yield return new WaitForSeconds(1.8f);
+        SceneManager.LoadScene(0);
     }
 }

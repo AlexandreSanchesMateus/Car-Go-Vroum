@@ -82,6 +82,8 @@ public class CarController : MonoBehaviour
     public float RearLeftWheelVelocity { get { return LB_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
     public float RearRightWheelVelocity { get { return RB_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
 
+    public Rigidbody CarRb { get { return carRb; } }
+
     // Input variable
     public float AccelerationInput { get; set; } = 0f;
     public bool NeedToBrake { get; set; } = false;
@@ -108,7 +110,7 @@ public class CarController : MonoBehaviour
 
     private void Update()
     {
-        ShowSpeed = (int)Vector3.Dot(transform.forward, carRb.velocity);
+        ShowSpeed = (int)(Mathf.Abs(Vector3.Dot(transform.forward, carRb.velocity)) * 3.6f);
 
         // Faire un float desireTurnRadius et le smoother
         // puis faire le calcule de rotation

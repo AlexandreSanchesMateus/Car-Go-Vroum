@@ -21,6 +21,7 @@ namespace NetworkProtocol
 
         S_RunningState,
         S_StartMovingState,
+        S_StartGameState,
         S_FinishedState,
         S_PlayersState,
         S_PlayerInfected,
@@ -240,7 +241,7 @@ namespace NetworkProtocol
             Serializer.Serialize_uByte(byteArray, (byte)playerList.Count);
 
             foreach (RunningPacketData data in playerList)
-	        {
+            {
                 Serializer.Serialize_u16(byteArray, data.playerIndex);
                 byte other = (byte)(data.isInfected ? 0b10000000 : 0b0);
                 other |= data.slotId;
@@ -248,7 +249,7 @@ namespace NetworkProtocol
                 Serializer.Serialize_uByte(byteArray, other);
             }
         }
-        
+
         public static GameStateRunningPacket Deserialize(List<byte> byteArray, ref int offset)
         {
             GameStateRunningPacket packet = new GameStateRunningPacket();
@@ -284,6 +285,46 @@ namespace NetworkProtocol
         {
             GameStateStartMovePacket packet = new GameStateStartMovePacket();
             packet.moveInfected = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
+
+            return packet;
+        }
+    }
+
+    public class GameStateStartPacket : BasePacket
+    {
+        public GameStateStartPacket() { Opcode = EOpcode.S_StartGameState; }
+
+        public UInt32 gameDuration;
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_u32(byteArray, gameDuration);
+        }
+
+        public static GameStateStartPacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            GameStateStartPacket packet = new GameStateStartPacket();
+            packet.gameDuration = Serializer.Deserialize_u32(byteArray, ref offset);
+
+            return packet;
+        }
+    }
+
+    public class GameStateFinishPacket : BasePacket
+    {
+        GameStateFinishPacket() { Opcode = EOpcode.S_FinishedState; }
+
+        public bool infectedWins;
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_uByte(byteArray, (byte)(infectedWins ? 1 : 0));
+        }
+
+        public static GameStateFinishPacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            GameStateFinishPacket packet = new GameStateFinishPacket();
+            packet.infectedWins = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
 
             return packet;
         }

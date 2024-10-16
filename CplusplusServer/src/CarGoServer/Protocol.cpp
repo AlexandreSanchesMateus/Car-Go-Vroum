@@ -369,6 +369,32 @@ GameStateStartMovePacket GameStateStartMovePacket::Deserialize(const std::vector
 	return packet;
 }
 
+void GameStateStartPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
+{
+	Serialize_u32(byteArray, gameDuration);
+}
+
+GameStateStartPacket GameStateStartPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
+{
+	GameStateStartPacket packet;
+	packet.gameDuration = Deserialize_u32(byteArray, offset);
+
+	return packet;
+}
+
+void GameStateFinishPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
+{
+	Serialize_u8(byteArray, infectedWins ? 1 : 0);
+}
+
+GameStateFinishPacket GameStateFinishPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
+{
+	GameStateFinishPacket packet;
+	packet.infectedWins = Deserialize_u8(byteArray, offset) != 0;
+
+	return packet;
+}
+
 void PlayersStatePacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
 	Serialize_u8(byteArray, otherPlayersState.size());

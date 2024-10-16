@@ -29,9 +29,12 @@ enum class Opcode : std::uint8_t
 	// runtime
 	S_RunningState,        // the game has started (where is the player and in witch team)
 	S_StartMovingState,         // start moving after a certain time
+	S_StartGameState,
 	S_FinishedState,       // the game have finished (who wins)
 	S_PlayersState,
-	S_PlayerInfected
+	S_PlayerInfected,
+
+	S_DebugCollision
 };
 
 
@@ -141,6 +144,26 @@ struct GameStateStartMovePacket
 
 	void Serialize(std::vector<std::uint8_t>& byteArray) const;
 	static GameStateStartMovePacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
+};
+
+struct GameStateStartPacket
+{
+	static constexpr Opcode opcode = Opcode::S_StartGameState;
+
+	std::uint32_t gameDuration;
+
+	void Serialize(std::vector<std::uint8_t>& byteArray) const;
+	static GameStateStartPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
+};
+
+struct GameStateFinishPacket
+{
+	static constexpr Opcode opcode = Opcode::S_FinishedState;
+
+	bool infectedWins;
+
+	void Serialize(std::vector<std::uint8_t>& byteArray) const;
+	static GameStateFinishPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
 };
 
 struct PlayersStatePacket
