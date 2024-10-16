@@ -14,6 +14,11 @@ const int MaxPlayerCount = 20;
 
 const float InfectedPercentage = 0.25;
 
+// en secondes
+const float WaitAfterSurvivorMove = 3.f;
+const float WaitAfterInfectedMove = 4.f;
+const float GameDuration = 150.f;
+
 const std::string MapPath = "assets/map.json";
 
 // To change for PxVec3

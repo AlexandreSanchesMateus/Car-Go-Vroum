@@ -30,7 +30,7 @@ public:
 
 private:
 	const std::unordered_map<std::string, Action> m_commands = {
-		{"purge", Action::Purge}, {"kick", Action::Kick}, {"close", Action::Close}, {"bite", Action::Easter}
+		{"purge", Action::Purge}, {"kick", Action::Kick}, {"close", Action::Close}, {"jerome", Action::Easter}
 	};
 
 	std::string m_prompt;

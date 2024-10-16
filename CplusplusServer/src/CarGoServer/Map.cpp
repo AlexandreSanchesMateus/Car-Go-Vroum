@@ -4,6 +4,8 @@
 #include <fstream>
 #include <physx/cooking/PxCooking.h>
 #include <random>
+#include <fmt/core.h>
+#include <fmt/color.h>
 
 Map::Map()
 {
@@ -71,6 +73,8 @@ void Map::InitPlayers(GameData& gameData)
 
 void Map::InitPhysics() 
 {
+	fmt::println("Initialize map ...");
+
     m_gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_gAllocator, m_gErrorCallback);
 
     m_gPvd = physx::PxCreatePvd(*m_gFoundation);

@@ -9,22 +9,21 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
-#include <physx/PxPhysicsAPI.h>
+//#include <physx/PxPhysicsAPI.h>
 #include <nlohmann/json.hpp>
 
 #include <iostream>
 #include <fstream>
-#include <CarGoServer/MapData.hpp>
-#include <CarGoServer/Map.hpp>
-#include <CarGoServer/Map.hpp>
 
-using namespace physx;
+
+//using namespace physx;
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData);
 void PurgePlayers(const GameData& gameData);
-ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer);
-ENetPacket* build_running_state_packet(GameData gameData);
+ENetPacket* build_game_data_packet(const GameData& gameData, const Player& targetPlayer);
+ENetPacket* build_running_state_packet(const GameData& gameData);
 void tick_physics(Map& map);
+void tick_logic(GameData& gameData);
 
 int main()
 {
@@ -69,12 +68,10 @@ int main()
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "    |_|_\\___/_/ \\_\\___/ |_|\n");
 	fmt::println("Application port : {}\n", AppPort);
 
-	Command cmdPrompt;
-
 	GameData gameData;
 	gameData.state = GameState::LOBBY;
 
-	Map map;
+	Command cmdPrompt;
 
 	std::uint32_t nextTick = enet_time_get();
 
@@ -209,7 +206,8 @@ int main()
 		// Tick logique
 		if (now >= nextTick) 
 		{
-			tick_physics(map);
+			tick_logic(gameData);
+			tick_physics(gameData.map);
 			nextTick += TickRate;
 		}
 	}
@@ -309,6 +307,11 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 				PurgePlayers(gameData);
 
 				// init world
+				gameData.map.InitPlayers(gameData);
+
+				gameData.state = GameState::WAITING_GAME_START;
+				gameData.timer = enet_time_get();
+				gameData.endTimer = gameData.timer + WaitAfterSurvivorMove * 1000;
 
 				ENetPacket* packet = build_running_state_packet(gameData);
 				for (const Player& other : gameData.players)
@@ -356,7 +359,7 @@ void PurgePlayers(const GameData& gameData)
 	}
 }
 
-ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer)
+ENetPacket* build_game_data_packet(const GameData& gameData, const Player& targetPlayer)
 {
 	GameDataPacket packet;
 
@@ -377,7 +380,7 @@ ENetPacket* build_game_data_packet(GameData gameData, const Player& targetPlayer
 	return build_packet<GameDataPacket>(packet, ENET_PACKET_FLAG_RELIABLE);
 }
 
-ENetPacket* build_running_state_packet(GameData gameData)
+ENetPacket* build_running_state_packet(const GameData& gameData)
 {
 	GameStateRunningPacket packet;
 	for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
@@ -401,4 +404,62 @@ void tick_physics(Map& map)
 
 
 	map.UpdatePhysics(TickRate);
+}
+
+void tick_logic(GameData& gameData)
+{
+	switch (gameData.state)
+	{
+	case GameState::LOBBY:
+		break;
+
+	case GameState::WAITING_GAME_START:
+		if (gameData.timer >= gameData.endTimer)
+		{
+			GameStateStartMovePacket moveStatePacket;
+			if (gameData.waitingStateInit)
+			{
+				// send move not infected
+				moveStatePacket.moveInfected = false;
+				gameData.waitingStateInit = true;
+				gameData.timer = enet_time_get();
+				gameData.endTimer = gameData.timer + WaitAfterInfectedMove * 1000;
+			}
+			else
+			{
+				// send move Infected
+				moveStatePacket.moveInfected = true;
+				gameData.state = GameState::GAME_STARTED;
+				gameData.timer = enet_time_get();
+				gameData.endTimer = gameData.timer + GameDuration * 1000;
+			}
+
+			ENetPacket* enetPacket = build_packet<GameStateStartMovePacket>(moveStatePacket, ENET_PACKET_FLAG_RELIABLE);
+			for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
+			{
+				if (it->peer != nullptr)
+					enet_peer_send(it->peer, 0, enetPacket);
+			}
+		}
+		else
+			gameData.timer = enet_time_get();
+
+		break;
+
+	case GameState::GAME_STARTED:
+		if (gameData.timer >= gameData.endTimer)
+		{
+			// fin de la partie
+		}
+		else
+			gameData.timer = enet_time_get();
+
+		// ne rien faire de plus car s'il y a eu une collision la physic s'en charge
+		// dans ce cas regarder le nombre de joueur en vie
+		break;
+
+	case GameState::GAME_FINISHED:
+		gameData.waitingStateInit = false;
+		break;
+	}
 }

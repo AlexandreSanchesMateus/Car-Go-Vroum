@@ -269,6 +269,26 @@ namespace NetworkProtocol
         }
     }
 
+    public class GameStateStartMovePacket : BasePacket
+    {
+        GameStateStartMovePacket() { Opcode = EOpcode.S_StartMovingState; }
+
+        public bool moveInfected;
+
+        public override void Serialize(List<byte> byteArray)
+        {
+            Serializer.Serialize_uByte(byteArray, (byte)(moveInfected ? 1 : 0));
+        }
+
+        public static GameStateStartMovePacket Deserialize(List<byte> byteArray, ref int offset)
+        {
+            GameStateStartMovePacket packet = new GameStateStartMovePacket();
+            packet.moveInfected = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
+
+            return packet;
+        }
+    }
+
     public class PlayersStatePacket : BasePacket
     {
         PlayersStatePacket() { Opcode = EOpcode.S_PlayersState; }

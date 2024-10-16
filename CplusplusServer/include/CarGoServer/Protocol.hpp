@@ -133,6 +133,16 @@ struct GameStateRunningPacket
 	static GameStateRunningPacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
 };
 
+struct GameStateStartMovePacket
+{
+	static constexpr Opcode opcode = Opcode::S_RunningState;
+
+	bool moveInfected;
+
+	void Serialize(std::vector<std::uint8_t>& byteArray) const;
+	static GameStateStartMovePacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);
+};
+
 struct PlayersStatePacket
 {
 	static constexpr Opcode opcode = Opcode::S_PlayersState;

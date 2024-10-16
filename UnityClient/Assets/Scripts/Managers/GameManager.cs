@@ -27,6 +27,10 @@ public class GameManager : MonoBehaviour
 
     [SerializeField, BoxGroup("UI")]
     private TextMeshProUGUI speedTxt;
+    [SerializeField, BoxGroup("UI")]
+    private TextMeshProUGUI infoTxt;
+
+    private Player ownPlayer = null;
 
     //private List<PlayerInput> m_playerInputs = new List<PlayerInput>();
     //private UInt16 m_inputIndex = 1;
@@ -36,6 +40,8 @@ public class GameManager : MonoBehaviour
         // Manually simutale physics
         Physics.simulationMode = SimulationMode.Script;
         SCORef.GameData.state = GameData.GameState.WAITING_GAME_START;
+
+        ownPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == SCORef.GameData.ownPlayerIndex; });
 
         foreach (Player player in SCORef.GameData.players)
         {
@@ -119,7 +125,21 @@ public class GameManager : MonoBehaviour
                 break;
 
             case EOpcode.S_StartMovingState:
-                inputManager.EnableCarMap();
+                GameStateStartMovePacket gameStateStartMovePacket = GameStateStartMovePacket.Deserialize(byteArray, ref offset);
+
+                if (ownPlayer.isInfected)
+                {
+                    if (gameStateStartMovePacket.moveInfected)
+                        inputManager.EnableCarMap();
+                    else
+                        StartCoroutine(CountDown());
+
+                }
+                else if(!gameStateStartMovePacket.moveInfected)
+                {
+                    inputManager.EnableCarMap();
+                    StartCoroutine(GoMsg());
+                }
                 break;
 
             case EOpcode.S_FinishedState:
@@ -169,5 +189,23 @@ public class GameManager : MonoBehaviour
         SCORef.GameData.ownPlayerIndex = -1;
 
         SceneManager.LoadScene(0);
+    }
+
+    private IEnumerator CountDown()
+    {
+        infoTxt.text = "3";
+        yield return new WaitForSeconds(1);
+        infoTxt.text = "2";
+        yield return new WaitForSeconds(1);
+        infoTxt.text = "1";
+        yield return new WaitForSeconds(1);
+        StartCoroutine(GoMsg());
+    }
+
+    private IEnumerator GoMsg()
+    {
+        infoTxt.text = "GO";
+        yield return new WaitForSeconds(1.5f);
+        infoTxt.gameObject.SetActive(false);
     }
 }
