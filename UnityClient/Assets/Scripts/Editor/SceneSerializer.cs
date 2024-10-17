@@ -5,7 +5,6 @@ using Unity.Plastic.Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.Serialization;
 
 public class SceneSerializer : EditorWindow
 {
@@ -57,7 +56,7 @@ public class SceneSerializer : EditorWindow
         
         return new SphereObject
         {
-            Type = "sphere",
+            type = "sphere",
             position = (obj.transform.position + collider.center).ToFloat3(),
             radius = collider.radius * Math.Max(obj.transform.localScale.x, Math.Max(obj.transform.localScale.y, obj.transform.localScale.z))
         };
@@ -69,7 +68,7 @@ public class SceneSerializer : EditorWindow
 
         return new BoxObject
         {
-            Type = "box",
+            type = "box",
             position = (obj.transform.position + collider.center).ToFloat3(),
             rotation = obj.transform.rotation.ToFloat4(),
             extents = obj.transform.localScale.Multiply(collider.size).ToFloat3()
@@ -82,7 +81,7 @@ public class SceneSerializer : EditorWindow
         
         return new CapsuleObject
         {
-            Type = "capsule",
+            type = "capsule",
             position = (obj.transform.position + collider.center).ToFloat3(),
             rotation = obj.transform.rotation.ToFloat4(),
             radius = collider.radius * Math.Max(obj.transform.localScale.x, obj.transform.localScale.z),
@@ -102,7 +101,7 @@ public class SceneSerializer : EditorWindow
         
         return new MeshObject
         {
-            Type = "mesh",
+            type = "mesh",
             position = meshCollider.transform.position.ToFloat3(),
             rotation = meshCollider.transform.rotation.ToFloat4(),
             vertices = vertices,
@@ -120,7 +119,7 @@ public class SceneData
 [Serializable]
 public class ObjectData
 {
-    public string Type;
+    public string type;
 }
 
 [Serializable]
@@ -180,6 +179,7 @@ public struct Float3
     public float X, Y, Z;
 }
 
+[Serializable]
 public struct Float4
 {
     public float X, Y, Z, W;

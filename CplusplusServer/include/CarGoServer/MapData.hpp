@@ -6,12 +6,12 @@
 
 class PhysicObject {
 public:
-	std::string Type;
+	std::string type;
 
 	virtual ~PhysicObject() = default;
 
 	virtual void from_json(const nlohmann::json& j) {
-        j.at("Type").get_to(Type);
+        j.at("type").get_to(type);
     }
 
 	virtual void CreatePhysxObject() {}
@@ -68,42 +68,7 @@ class MapData {
 public:
 	std::vector<std::shared_ptr<PhysicObject>> physicObjects;
 
-	// Fonction pour créer un objet physique en fonction du type
-	std::shared_ptr<PhysicObject> createPhysicObject(const std::string& type) {
-		if (type == "Capsule") {
-			return std::make_shared<CapsuleObject>();
-		}
-		else if (type == "Sphere") {
-			return std::make_shared<SphereObject>();
-		}
-		else if (type == "Box") {
-			return std::make_shared<BoxObject>();
-		}
-		else if (type == "Mesh") {
-			return std::make_shared<MeshObject>();
-		}
-		else {
-			std::cerr << "Type inconnu: " << type << std::endl;
-			return nullptr; // Retourne nullptr pour un type inconnu
-		}
-	}
+	std::shared_ptr<PhysicObject> createPhysicObject(const std::string& type);
 
-	void from_json(const nlohmann::json& j) {
-		if (j.contains("SceneObjects")) {
-			for (const auto& item : j.at("SceneObjects")) {
-				// Vérification du type et création de l'objet
-				std::string type = item.at("Type").get<std::string>();
-				auto obj = createPhysicObject(type); // Appel à createPhysicObject
-
-				if (obj) {
-					// Désérialise l'objet
-					obj->from_json(item);
-					physicObjects.push_back(obj); // Ajoute l'objet au vecteur
-				}
-			}
-		}
-		else {
-			std::cerr << "Erreur: Le champ 'SceneObjects' est manquant dans le JSON." << std::endl;
-		}
-	}
+	void from_json(const nlohmann::json& j);
 };

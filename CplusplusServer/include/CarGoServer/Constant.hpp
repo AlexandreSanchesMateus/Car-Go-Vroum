@@ -21,7 +21,7 @@ constexpr float WaitAfterSurvivorMove = 3.f;
 constexpr float WaitAfterInfectedMove = 4.f;
 constexpr float GameDuration = 150.f;
 
-const std::string MapPath = "assets/Plane.json";
+const std::string MapPath = "assets/map.json";
 
 const physx::PxTransform SurvivorSpawns[] = {
 	physx::PxTransform(physx::PxVec3(0,2,0), physx::PxQuat(0,0,0,1)),
