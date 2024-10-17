@@ -15,6 +15,7 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 void PurgePlayers(const GameData& gameData);
 ENetPacket* build_game_data_packet(const GameData& gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(const GameData& gameData);
+ENetPacket* build_player_state_packet(const GameData& gameData, const Player& targetPlayer);
 void tick_physics(GameData& gameData, Map& map, float deltaTime);
 void tick_logic(GameData& gameData, std::uint32_t now);
 
@@ -138,6 +139,10 @@ int main()
 					}
 					else
 						fmt::println(" Player #{} disconnected (no name)", player.index);
+
+					// Vérifier s'il y a encore quelqu'un
+					// si oui vérifier l'état de la partie
+					// si non fermé la partie immédiatement
 
 					cmdPrompt.RecoverLastPrompt();
 				}
@@ -462,6 +467,15 @@ void tick_physics(GameData& gameData, Map& map, float deltaTime)
 	}
 
 	map.SimulatePhysics(deltaTime);
+
+	for (const Player& player : gameData.players)
+	{
+		if (player.peer != nullptr && !player.IsPending())
+		{
+			ENetPacket* packet = build_player_state_packet(gameData, player);
+			enet_peer_send(player.peer, 0, packet);
+		}
+	}
 }
 
 void tick_logic(GameData& gameData, std::uint32_t now)

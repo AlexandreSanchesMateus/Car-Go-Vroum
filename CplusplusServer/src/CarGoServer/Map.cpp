@@ -42,7 +42,7 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 
 	physx::PxShape* boxShape1 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.95, 0.3, 2.75)), *m_gMaterial);
 	physx::PxShape* boxShape2 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.7, 0.245, 0.975)), *m_gMaterial);
-	boxShape2->setLocalPose(physx::PxTransform(physx::PxVec3(0.0, 0.5, 0.0)));
+	boxShape2->setLocalPose(physx::PxTransform(physx::PxVec3(0.0, 0.5, 0.0), physx::PxQuat(1)));
 
 	dynamicCar->attachShape(*boxShape1);
 	dynamicCar->attachShape(*boxShape2);
@@ -118,6 +118,14 @@ void Map::InitPhysics()
     m_gScene = m_gPhysics->createScene(sceneDesc);
 
     m_gMaterial = m_gPhysics->createMaterial(0.6f, 0.6f, 0.f); // Unity Default Params
+
+	fmt::print("    => ");
+	fmt::print(stderr, fg(fmt::color::green), "Phisx Initialized\n");
+
+	UnserializeMap(MapPath);
+
+	fmt::print("    => ");
+	fmt::print(stderr, fg(fmt::color::green), "Map Deserialized\n");
 }
 
 void Map::UnserializeMap(std::string mapPath) {
@@ -140,10 +148,9 @@ void Map::UnserializeMap(std::string mapPath) {
 		return;
 	}
 
-	MapData mapData;
-	mapData.from_json(data);
+	m_mapData.from_json(data);
 
-	for (const auto& obj : mapData.physicObjects)
+	for (const auto& obj : m_mapData.physicObjects)
 	{
 		if (obj) 
 		{
@@ -216,8 +223,8 @@ void Map::UnserializeMap(std::string mapPath) {
 
 void Map::Release()
 {
-	m_gFoundation->release();
 	m_gPhysics->release();
+	m_gFoundation->release();
 }
 
 physx::PxFoundation* Map::GetFoundation() const

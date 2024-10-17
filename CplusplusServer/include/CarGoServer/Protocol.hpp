@@ -187,8 +187,6 @@ struct PlayersStatePacket
 		float rearRightWheelVelocity;
 	};
 
-	std::vector<PlayerState> otherPlayersState;
-
 	// Prediction / Reconciliation
 	//std::uint16_t inputIndex;
 	physx::PxVec3 localPosition;
@@ -201,6 +199,8 @@ struct PlayersStatePacket
 	float localFrontRightWheelVelocity;
 	float localRearLeftWheelVelocity;
 	float localRearRightWheelVelocity;
+
+	std::vector<PlayerState> otherPlayersState;
 
 	void Serialize(std::vector<std::uint8_t>& byteArray) const;
 	static PlayersStatePacket Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset);

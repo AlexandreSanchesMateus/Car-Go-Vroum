@@ -28,7 +28,9 @@ ClientCar::~ClientCar()
 }
 
 void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
-{            
+{
+	return;
+
 	bool fullyGrounded = true;
 
 	fullyGrounded &= UpdateWheelPhysics(m_frontLeftWheel, true, inputs, deltaTime);

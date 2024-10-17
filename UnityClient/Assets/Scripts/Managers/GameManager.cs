@@ -38,35 +38,12 @@ public class GameManager : MonoBehaviour
     //private List<PlayerInput> m_playerInputs = new List<PlayerInput>();
     //private UInt16 m_inputIndex = 1;
 
-    private void Start()
+    private void Awake()
     {
-        SCORef.GameData = new GameData();
-        SCORef.GameData.ownPlayerIndex = 0;
-        SCORef.GameData.players = new List<Player>();
-
-        Player pl1 = new Player(0, "alex");
-        pl1.isInfected = true;
-        pl1.slotId = 0;
-        SCORef.GameData.players.Add(pl1);
-
-        Player pl2 = new Player(1, "nic");
-        pl2.isInfected = true;
-        pl2.slotId = 1;
-        SCORef.GameData.players.Add(pl2);
-
-        Player pl3 = new Player(2, "tim");
-        pl3.isInfected = false;
-        pl3.slotId = 0;
-        SCORef.GameData.players.Add(pl3);
-
-        Player pl4 = new Player(3, "jerome");
-        pl4.isInfected = false;
-        pl4.slotId = 1;
-        SCORef.GameData.players.Add(pl4);
-
-
         // Manually simutale physics
         Physics.simulationMode = SimulationMode.Script;
+
+        SCORef.Game = this;
         SCORef.GameData.state = GameData.GameState.WAITING_GAME_START;
 
         m_ownPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == SCORef.GameData.ownPlayerIndex; });
@@ -121,7 +98,7 @@ public class GameManager : MonoBehaviour
             // m_playerInputs.Add(inputManager.m_lastInput);
 
             SCORef.Network.BuildAndSendPacketToNetwork<PlayerInputPacket>(packet, ENet6.PacketFlags.None, 0);
-        }*/
+        }
 
         foreach (Player player in SCORef.GameData.players)
         {
@@ -130,7 +107,7 @@ public class GameManager : MonoBehaviour
         }
 
         Physics.Simulate(Time.fixedDeltaTime);
-        speedTxt.text = ownCarController.ShowSpeed.ToString();
+        speedTxt.text = ownCarController.ShowSpeed.ToString();*/
     }
 
     public void HandleMessage(byte[] message)
@@ -204,6 +181,31 @@ public class GameManager : MonoBehaviour
             case EOpcode.S_PlayersState:
                 {
                     PlayersStatePacket playersStatePacket = PlayersStatePacket.Deserialize(byteArray, ref offset);
+
+                    // local
+                    ownCarController.gameObject.transform.position = playersStatePacket.localPosition;
+                    ownCarController.gameObject.transform.rotation = playersStatePacket.localRotation;
+
+                    if (playersStatePacket.localAtRest)
+                    {
+                        ownCarController.CarRb.velocity = Vector3.zero;
+                        ownCarController.CarRb.angularVelocity = Vector3.zero;
+
+                        ownCarController.FrontLeftWheelVelocity = 0f;
+                        ownCarController.FrontRightWheelVelocity = 0f;
+                        ownCarController.RearLeftWheelVelocity = 0f;
+                        ownCarController.RearRightWheelVelocity = 0f;
+                    }
+                    else
+                    {
+                        ownCarController.CarRb.velocity = playersStatePacket.localLinearVelocity;
+                        ownCarController.CarRb.angularVelocity = playersStatePacket.localAngularVelocity;
+
+                        ownCarController.FrontLeftWheelVelocity = playersStatePacket.localFrontLeftWheelVelocity;
+                        ownCarController.FrontRightWheelVelocity = playersStatePacket.localFrontRightWheelVelocity;
+                        ownCarController.RearLeftWheelVelocity = playersStatePacket.localRearLeftWheelVelocity;
+                        ownCarController.RearRightWheelVelocity = playersStatePacket.localRearRightWheelVelocity;
+                    }
 
                     foreach (PlayersStatePacket.PlayerState playerState in playersStatePacket.otherPlayerState)
                     {
