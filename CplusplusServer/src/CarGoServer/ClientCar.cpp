@@ -29,14 +29,14 @@ ClientCar::~ClientCar()
 
 void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 {
-	return;
-
 	bool fullyGrounded = true;
 
 	fullyGrounded &= UpdateWheelPhysics(m_frontLeftWheel, true, inputs, deltaTime);
 	fullyGrounded &= UpdateWheelPhysics(m_frontRightWheel, true, inputs, deltaTime);
 	fullyGrounded &= UpdateWheelPhysics(m_rearLeftWheel, false, inputs, deltaTime);
 	fullyGrounded &= UpdateWheelPhysics(m_rearRightWheel, false, inputs, deltaTime);
+
+	return;
 
 	physx::PxVec3 linearVelocity = m_actor->getLinearVelocity();
 	if (fullyGrounded)
@@ -96,7 +96,8 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const 
 
 
 	physx::PxRaycastBuffer hitBuffer;
-	if (m_gScene->raycast(startPos, dir, m_restDistance, hitBuffer) && hitBuffer.getNbAnyHits() > 0)
+	physx::PxQueryFilterData fd = physx::PxQueryFilterData(physx::PxQueryFlag::eSTATIC);
+	if (m_gScene->raycast(startPos, dir, m_restDistance, hitBuffer, physx::PxHitFlag::eDEFAULT, fd) && hitBuffer.getNbAnyHits() > 0)
 	{
 		physx::PxVec3 physicForce(0.f, 0.f, 0.f);
 
@@ -155,7 +156,7 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const 
 		wheelData.suspensionVelocity = offset;
 
 		// ------------------------ Horizontal Force (side friction) ------------------------
-		physx::PxVec3 globalPoint = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p);
+		/*physx::PxVec3 globalPoint = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p);
 		physx::PxVec3 relativePosition = globalPoint - m_actor->getGlobalPose().p;
 
 		physx::PxVec3 wheelVelocity = m_actor->getLinearVelocity() + m_actor->getAngularVelocity().cross(relativePosition);
@@ -167,15 +168,17 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const 
 		//float desireVelChange = -steeringVel * frictionCurve.Evaluate(friction);
 		float desireAccel = desireVelChange / deltaTime;
 
-		physicForce += wheelRight * m_tireMass * desireAccel;
+		physicForce += wheelRight * m_tireMass * desireAccel;*/
 
-		m_actor->addForce(physicForce);
+		// m_actor->addForce(physicForce);
 
-		physx::PxVec3 globalPosition = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p) - m_actor->getGlobalPose().transform(m_actor->getCMassLocalPose().p);
-		m_actor->getGlobalPose().p + m_actor->getCMassLocalPose().p;
+		physx::PxRigidBodyExt::addLocalForceAtLocalPos(*m_actor, physicForce, wheelData.wheelTrs.p);
 
-		physx::PxVec3 torque = globalPosition.cross(physicForce);
-		m_actor->addTorque(torque);
+		//physx::PxVec3 globalPosition = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p) - m_actor->getGlobalPose().transform(m_actor->getCMassLocalPose().p);
+		//m_actor->getGlobalPose().p + m_actor->getCMassLocalPose().p;
+
+		//physx::PxVec3 torque = globalPosition.cross(physicForce);
+		//m_actor->addTorque(torque);
 
 		return true;
 	}

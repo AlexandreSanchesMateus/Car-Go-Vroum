@@ -192,11 +192,11 @@ void Map::UnserializeMap(std::string mapPath) {
 				physx::PxTriangleMeshDesc meshDesc;
 				meshDesc.points.count = mesh->vertices.size();
 				meshDesc.points.stride = sizeof(physx::PxVec3); 
-				meshDesc.points.data = &mesh->vertices;
+				meshDesc.points.data = mesh->vertices.data();
 
-				meshDesc.triangles.count = mesh->triangles.size();
+				meshDesc.triangles.count = mesh->triangles.size() / 3;
 				meshDesc.triangles.stride = 3 * sizeof(physx::PxU32); 
-				meshDesc.triangles.data = &mesh->triangles; 
+				meshDesc.triangles.data = mesh->triangles.data(); 
 
 				physx::PxTolerancesScale scale;
 
