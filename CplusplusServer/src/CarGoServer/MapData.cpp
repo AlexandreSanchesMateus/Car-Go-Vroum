@@ -1,11 +1,11 @@
 #include "CarGoServer/MapData.hpp"
 
 void from_json(const nlohmann::json& j, physx::PxVec3& vec) {
-	vec = physx::PxVec3(j[0], j[1], j[2]);
+	vec = physx::PxVec3(j["X"], j["Y"], j["Z"]);
 }
 
 void from_json(const nlohmann::json& j, physx::PxQuat& quat) {
-	quat = physx::PxQuat(j[0], j[1], j[2], j[3]);
+	quat = physx::PxQuat(j["X"], j["Y"], j["Z"], j["W"]);
 }
 
 void from_json(const nlohmann::json& j, std::vector <physx::PxVec3 > & vertices) {

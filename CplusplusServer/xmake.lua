@@ -45,6 +45,7 @@ target("CarGoServer")
     set_kind("binary")
 
     add_headerfiles("include/CarGoServer/**.hpp")
+	add_headerfiles("include/**.natvis")
     add_files("src/**.cpp")
     add_packages("enet6", "fmt", "physx", "nlohmann_json")
     add_defines("SERVER_BUILD")
