@@ -40,6 +40,12 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
+        Physics.simulationMode = SimulationMode.Script;
+
+        SCORef.Game = this;
+        SCORef.GameData.state = GameData.GameState.WAITING_GAME_START;
+        return;
+
         // Manually simutale physics
         Physics.simulationMode = SimulationMode.Script;
 
@@ -89,7 +95,7 @@ public class GameManager : MonoBehaviour
         if (m_gameEnded)
             return;
 
-        /*if (inputManager != null && SCORef != null && SCORef.Network != null)
+        if (inputManager != null && SCORef != null && SCORef.Network != null)
         {
             PlayerInputPacket packet = new PlayerInputPacket();
             packet.inputs = inputManager.m_lastInput;
@@ -100,7 +106,7 @@ public class GameManager : MonoBehaviour
             SCORef.Network.BuildAndSendPacketToNetwork<PlayerInputPacket>(packet, ENet6.PacketFlags.None, 0);
         }
 
-        foreach (Player player in SCORef.GameData.players)
+        /*foreach (Player player in SCORef.GameData.players)
         {
             if (player.carController != null)
                 player.carController.UpdatePhysics();
@@ -302,7 +308,7 @@ public class GameManager : MonoBehaviour
             int seconds = (int)m_gameDuration % 60;
             int minutes = (int)m_gameDuration / 60;
 
-            infoTxt.text = "Time left -    " + minutes.ToString("D2") + ":" + seconds.ToString("D2");
+            infoTxt.text = minutes.ToString("D2") + ":" + seconds.ToString("D2");
             --m_gameDuration;
             yield return new WaitForSeconds(1);
         }

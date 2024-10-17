@@ -20,7 +20,7 @@ public:
 	Map& operator=(Map&&) = delete;
 
 	void SimulatePhysics(float elapsedTime);
-	void Clear();
+	void Clear(GameData& gameData);
 	physx::PxRigidDynamic* CreateRigidCar(std::uint8_t spawnSlotId, bool isInfected);
 	void InitPlayers(GameData& gameData);
 	void InitPhysics();

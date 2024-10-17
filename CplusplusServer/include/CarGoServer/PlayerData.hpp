@@ -16,8 +16,8 @@ struct Player
 	bool isInfected = false;
 	std::uint8_t spawnSlotId;
 
-	PlayerInput lastInput;
 	ClientCar* car = nullptr;
+	PlayerInput lastInput;
 
 	bool IsPending() const;
 };

@@ -11,13 +11,14 @@
 #include <stdexcept>
 
 
-void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData);
+void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, const Command& cmdPrompt);
 void PurgePlayers(const GameData& gameData);
+void CheckGameStatus(GameData& gameData);
 ENetPacket* build_game_data_packet(const GameData& gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(const GameData& gameData);
 ENetPacket* build_player_state_packet(const GameData& gameData, const Player& targetPlayer);
-void tick_physics(GameData& gameData, Map& map, float deltaTime);
-void tick_logic(GameData& gameData, std::uint32_t now);
+void tick_physics(GameData& gameData, float deltaTime);
+void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt);
 
 int main()
 {
@@ -55,15 +56,16 @@ int main()
 	fmt::print("    => ");
 	fmt::print(stderr, fg(fmt::color::green), "ENet host created\n\n");
 
+	GameData gameData;
+	gameData.state = GameState::LOBBY;
+	gameData.waitingStateInit = false;
+
 	fmt::println("< ======================================== >");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "     ___ ___   _   _____   __\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "    | _ \\ __| /_\\ |   \\ \\ / /\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "    |   / _| / _ \\| |) \\ V /\n");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "    |_|_\\___/_/ \\_\\___/ |_|\n");
 	fmt::println("Application port : {}\n", AppPort);
-
-	GameData gameData;
-	gameData.state = GameState::LOBBY;
 
 	Command cmdPrompt;
 
@@ -136,6 +138,11 @@ int main()
 							if(other.peer != nullptr && !other.IsPending())
 								enet_peer_send(other.peer, 0, playerDisconnectPacket);
 						}
+
+						// Check game status
+						if (gameData.state != GameState::LOBBY)
+							CheckGameStatus(gameData);
+
 					}
 					else
 						fmt::println(" Player #{} disconnected (no name)", player.index);
@@ -160,7 +167,7 @@ int main()
 					std::vector<std::uint8_t> content(event.packet->dataLength);
 					std::memcpy(content.data(), event.packet->data, event.packet->dataLength);
 
-					handle_message(player, content, gameData);
+					handle_message(player, content, gameData, cmdPrompt);
 					enet_packet_destroy(event.packet);
 				}
 					break;
@@ -180,7 +187,9 @@ int main()
 			switch (commandReport->action)
 			{
 			case Command::Action::Purge:
+				cmdPrompt.ClearLastPrompt();
 				PurgePlayers(gameData);
+				cmdPrompt.RecoverLastPrompt();
 				break;
 
 			case Command::Action::Kick:
@@ -208,8 +217,8 @@ int main()
 		{
 			float deltaTime = (now - lastTick) / 1000.0f;
 
-			tick_logic(gameData, now);
-			tick_physics(gameData, gameData.map, deltaTime);
+			tick_logic(gameData, now, cmdPrompt);
+			tick_physics(gameData, deltaTime);
 
 			lastTick = now;
 			nextTick += TickDelay;
@@ -234,7 +243,7 @@ int main()
 	return EXIT_SUCCESS;
 }
 
-void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData)
+void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, const Command& cmdPrompt)
 {
 	std::size_t offset = 0;
 	Opcode opcode = static_cast<Opcode>(Deserialize_u8(message, offset));
@@ -276,7 +285,9 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 					enet_peer_send(it->peer, 0, connectPacket);
 			}
 
+			cmdPrompt.ClearLastPrompt();
 			fmt::print(stderr, fg(fmt::color::green), "Player #{} (aka {}) successfully initialized\n", player.index, player.name);
+			cmdPrompt.RecoverLastPrompt();
 		}
 	}
 		break;
@@ -308,7 +319,10 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 
 			if (allReady && playerCount >= MinPlayerCount)
 			{
+				cmdPrompt.ClearLastPrompt();
 				PurgePlayers(gameData);
+				fmt::println("-------- GAME STARTED --------");
+				cmdPrompt.RecoverLastPrompt();
 
 				// init world
 				gameData.map.InitPlayers(gameData);
@@ -344,8 +358,7 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 	case Opcode::C_PlayerInputs:
 	{
 		PlayerInputPacket playerInputs = PlayerInputPacket::Deserialize(message, offset);
-
-		// Traitement input
+		player.lastInput = playerInputs.inputs;
 	}
 		break;
 	}
@@ -360,6 +373,42 @@ void PurgePlayers(const GameData& gameData)
 			enet_peer_disconnect(it->peer, (std::uint32_t)DisconnectReport::KICK);
 			fmt::print(stderr, fg(fmt::color::red), "Player #{} kicked (not initialized)\n", it->index);
 		}
+	}
+}
+
+void CheckGameStatus(GameData& gameData)
+{
+	bool playerLeft = false;
+	bool allInfected = true;
+
+	for (const Player& player : gameData.players)
+	{
+		if (player.peer != nullptr && !player.IsPending())
+		{
+			playerLeft = true;
+			if (!player.isInfected)
+			{
+				allInfected = false;
+				break;
+			}
+		}
+	}
+
+	if (!playerLeft)
+	{
+		fmt::print(stderr, fg(fmt::color::red), "No player left in the lobby. Closing ...\n");
+
+		// No player left on this server
+		// Reinitialize
+		gameData.waitingStateInit = false;
+		gameData.map.Clear(gameData);
+		gameData.state = GameState::LOBBY;
+	}
+	else if(allInfected)
+	{
+		// End of the game
+		gameData.lastGameInfectedWins = true;
+		gameData.state = GameState::GAME_FINISHED;
 	}
 }
 
@@ -455,7 +504,7 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 	return build_packet<PlayersStatePacket>(packet, 0);
 }
 
-void tick_physics(GameData& gameData, Map& map, float deltaTime)
+void tick_physics(GameData& gameData, float deltaTime)
 {
 	if (gameData.state == GameState::LOBBY)
 		return;
@@ -466,7 +515,7 @@ void tick_physics(GameData& gameData, Map& map, float deltaTime)
 			player.car->UpdatePhysics(player.lastInput, deltaTime);
 	}
 
-	map.SimulatePhysics(deltaTime);
+	gameData.map.SimulatePhysics(deltaTime);
 
 	for (const Player& player : gameData.players)
 	{
@@ -478,40 +527,58 @@ void tick_physics(GameData& gameData, Map& map, float deltaTime)
 	}
 }
 
-void tick_logic(GameData& gameData, std::uint32_t now)
+void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt)
 {
 	switch (gameData.state)
 	{
-	case GameState::LOBBY:
-		break;
-
 	case GameState::WAITING_GAME_START:
 		if (gameData.timer >= gameData.endTimer)
 		{
+			cmdPrompt.ClearLastPrompt();
 			GameStateStartMovePacket moveStatePacket;
-			if (gameData.waitingStateInit)
+			if (!gameData.waitingStateInit)
 			{
+				fmt::println("info : Survivors can move");
+
 				// send move not infected
 				moveStatePacket.moveInfected = false;
 				gameData.waitingStateInit = true;
 				gameData.timer = now;
 				gameData.endTimer = gameData.timer + WaitAfterInfectedMove * 1000;
+
+				ENetPacket* enetPacket = build_packet<GameStateStartMovePacket>(moveStatePacket, ENET_PACKET_FLAG_RELIABLE);
+				for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
+				{
+					if (it->peer != nullptr)
+						enet_peer_send(it->peer, 0, enetPacket);
+				}
 			}
 			else
 			{
+				fmt::println("info : Infected can move\nGame counter set to {}s", GameDuration);
+
 				// send move Infected
 				moveStatePacket.moveInfected = true;
 				gameData.state = GameState::GAME_STARTED;
 				gameData.timer = now;
 				gameData.endTimer = gameData.timer + GameDuration * 1000;
-			}
 
-			ENetPacket* enetPacket = build_packet<GameStateStartMovePacket>(moveStatePacket, ENET_PACKET_FLAG_RELIABLE);
-			for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
-			{
-				if (it->peer != nullptr)
-					enet_peer_send(it->peer, 0, enetPacket);
+				GameStateStartPacket gameStartPacket;
+				gameStartPacket.gameDuration = GameDuration * 1000;
+
+				ENetPacket* enetPacket = build_packet<GameStateStartMovePacket>(moveStatePacket, ENET_PACKET_FLAG_RELIABLE);
+				ENetPacket* enetPacketBis = build_packet<GameStateStartPacket>(gameStartPacket, ENET_PACKET_FLAG_RELIABLE);
+				for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
+				{
+					if (it->peer != nullptr)
+					{
+						enet_peer_send(it->peer, 0, enetPacket);
+						enet_peer_send(it->peer, 0, enetPacketBis);
+					}
+				}
 			}
+			cmdPrompt.RecoverLastPrompt();
+
 		}
 		else
 			gameData.timer = now;
@@ -519,19 +586,41 @@ void tick_logic(GameData& gameData, std::uint32_t now)
 		break;
 
 	case GameState::GAME_STARTED:
+		// Game counter
 		if (gameData.timer >= gameData.endTimer)
 		{
-			// fin de la partie
+			gameData.lastGameInfectedWins = false;
+			gameData.state = GameState::GAME_FINISHED;
 		}
 		else
 			gameData.timer = now;
 
-		// ne rien faire de plus car s'il y a eu une collision la physic s'en charge
-		// dans ce cas regarder le nombre de joueur en vie
 		break;
 
 	case GameState::GAME_FINISHED:
+	{
+		GameStateFinishPacket gameFinishPacket;
+		gameFinishPacket.infectedWins = gameData.lastGameInfectedWins;
+
+		ENetPacket* enetPacket = build_packet<GameStateFinishPacket>(gameFinishPacket, ENET_PACKET_FLAG_RELIABLE);
+		for (const Player& player : gameData.players)
+		{
+			if (player.peer != nullptr && !player.IsPending())
+				enet_peer_send(player.peer, 0, enetPacket);
+		}
+
+		cmdPrompt.ClearLastPrompt();
+		fmt::println("--------- GAME ENDED ---------");
+		if(gameData.lastGameInfectedWins)
+			fmt::println("INFECTED WINS");
+		else
+			fmt::println("SURVIVORS WINS");
+		cmdPrompt.RecoverLastPrompt();
+
+		gameData.map.Clear(gameData);
 		gameData.waitingStateInit = false;
+		gameData.state = GameState::LOBBY;
+	}
 		break;
 	}
 }

@@ -143,6 +143,8 @@ public class NetworkManager : MonoBehaviour
                                     case GameData.GameState.LOBBY:
                                         if (SCORef.Menu != null)
                                             SCORef.Menu.HandleDisconnection(evt.Data);
+                                        else
+                                            Debug.LogWarning("SCOREF : menu null reference");
                                         break;
 
                                     case GameData.GameState.WAITING_GAME_START:
@@ -150,6 +152,8 @@ public class NetworkManager : MonoBehaviour
                                     case GameData.GameState.GAME_FINISHED:
                                         if (SCORef.Game != null)
                                             SCORef.Game.HandleDisconnection(evt.Data);
+                                        else
+                                            Debug.LogWarning("SCOREF : game null reference");
                                         break;
 
                                 }
@@ -170,6 +174,8 @@ public class NetworkManager : MonoBehaviour
                                     case GameData.GameState.LOBBY:
                                         if (SCORef.Menu != null)
                                             SCORef.Menu.HandleMessage(array);
+                                        else
+                                            Debug.LogWarning("SCOREF : menu null reference");
                                         break;
 
                                     case GameData.GameState.WAITING_GAME_START:
@@ -177,6 +183,8 @@ public class NetworkManager : MonoBehaviour
                                     case GameData.GameState.GAME_FINISHED:
                                         if (SCORef.Game != null)
                                             SCORef.Game.HandleMessage(array);
+                                        else
+                                            Debug.LogWarning("SCOREF : game null reference");
                                         break;
 
                                 }

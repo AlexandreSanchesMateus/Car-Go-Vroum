@@ -43,7 +43,10 @@ std::optional<Command::Report> Command::HandleEvent()
 		{
 			// enter key
 			if (m_prompt.empty())
+			{
+				fmt::print("> ");
 				return std::nullopt;
+			}
 
 			fmt::println("");
 
@@ -164,12 +167,12 @@ std::optional<Command::Report> Command::HandleEvent()
 	return report;
 }
 
-void Command::ClearLastPrompt()
+void Command::ClearLastPrompt() const
 {
 	fmt::print("\r{}\r", std::string(m_prompt.length() + 2, ' '));
 }
 
-void Command::RecoverLastPrompt()
+void Command::RecoverLastPrompt() const
 {
 	fmt::print("> {}", m_prompt);
 }

@@ -1,4 +1,6 @@
 #pragma once
+
+# define PI 3.14159265358979323846
 #include <cstdint>
 #include <tuple>
 #include <string>
@@ -21,10 +23,13 @@ constexpr float WaitAfterSurvivorMove = 3.f;
 constexpr float WaitAfterInfectedMove = 4.f;
 constexpr float GameDuration = 150.f;
 
+constexpr float DegToRad = PI / 180.f;
+constexpr float RadToDeg = 180.f / PI;
+
 const std::string MapPath = "assets/Plane.json";
 
 const physx::PxTransform SurvivorSpawns[] = {
-	physx::PxTransform(physx::PxVec3(0,2,0), physx::PxQuat(0,0,0,1)),
+	physx::PxTransform(physx::PxVec3(0,10,0), physx::PxQuat(0,0,0,1)),
 	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
 	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
 	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
@@ -34,7 +39,7 @@ const physx::PxTransform SurvivorSpawns[] = {
 };
 
 const physx::PxTransform InfectedSpawns[] = {
-	physx::PxTransform(physx::PxVec3(0,2,0), physx::PxQuat(0,0,0,1)),
+	physx::PxTransform(physx::PxVec3(0,10,0), physx::PxQuat(0,0,0,1)),
 	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
 	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
 	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),

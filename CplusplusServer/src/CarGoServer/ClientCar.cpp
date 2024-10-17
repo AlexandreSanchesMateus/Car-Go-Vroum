@@ -1,42 +1,95 @@
 #include "CarGoServer/ClientCar.hpp"
 #include "CarGoServer/Constant.hpp"
 #include "CarGoServer/PlayerInput.hpp"
+#include <fmt/core.h>
 
 ClientCar::ClientCar(std::uint16_t playerIndex, physx::PxRigidDynamic* dynamicCar, physx::PxScene* scene, physx::PxPhysics* physics)
 	: m_playerIndex(playerIndex), m_actor(dynamicCar), m_gScene(scene), m_gPhysics(physics), m_restDistance(0.8f),
 	m_springStrenght(6000.f), m_damping(240.f), m_tireMass(28.f), m_engineTorque(1800.f),	m_topSpeed(40.f), m_topReverseSpeed(18.f),
 	m_breakForce(2000.f), m_noInputFrictionForce(0.9f), m_steeringSpeed(0.45f), m_steeringAngle(25.f), m_recoverForce(7.f),
-	m_timeBeforeFliping(0.6f), m_flipingForce(7.f)
+	m_timeBeforeFliping(0.6f), m_flipingForce(7.f), m_canFlip(false), m_currentTurnAngle(0.f)
 {
+	// Wheels Positions
 	m_frontLeftWheel.suspensionVelocity = 0.f;
 	m_frontLeftWheel.wheelTrs = physx::PxTransform(-0.9f, -0.13f, 1.85f);
-
 	m_frontRightWheel.suspensionVelocity = 0.f;
 	m_frontRightWheel.wheelTrs = physx::PxTransform(0.9f, -0.13f, 1.85f);
-
 	m_rearLeftWheel.suspensionVelocity = 0.f;
 	m_rearLeftWheel.wheelTrs = physx::PxTransform(-0.9f, -0.13f, -1.35f);
-
 	m_rearRightWheel.suspensionVelocity = 0.f;
 	m_rearRightWheel.wheelTrs = physx::PxTransform(0.9f, -0.13f, -1.35f);
 
-	m_canFlip = false;
-}
+	// wheel distance constant
+	m_frontRearDistance = std::abs(m_rearLeftWheel.wheelTrs.p.z - m_frontLeftWheel.wheelTrs.p.z);
+	m_rearWheelDistance = std::abs(m_rearLeftWheel.wheelTrs.p.x - m_rearRightWheel.wheelTrs.p.x);
 
-ClientCar::~ClientCar()
-{
+	// Timeline
+	m_frontTireFriction.AddKey(0.f, 0.85f);
+	m_frontTireFriction.AddKey(0.1f, 0.8f);
+	m_frontTireFriction.AddKey(0.4f, 0.25f);
+	m_frontTireFriction.AddKey(0.5f, 0.2f);
+	m_frontTireFriction.AddKey(0.6f, 0.18f);
+	m_frontTireFriction.AddKey(0.9f, 0.07f);
+	m_frontTireFriction.AddKey(1.f, 0.05f);
+
+	m_rearTireFriction.AddKey(0.f, 0.8f);
+	m_rearTireFriction.AddKey(0.1f, 0.75f);
+	m_rearTireFriction.AddKey(0.5f, 0.17f);
+	m_rearTireFriction.AddKey(0.6f, 0.12f);
+	m_rearTireFriction.AddKey(1.f, 0.08f);
+
+	m_virtualEngine.AddKey(0.f, 0.5f);
+	m_virtualEngine.AddKey(0.05f, 0.54f);
+	m_virtualEngine.AddKey(0.25f, 0.96f);
+	m_virtualEngine.AddKey(0.3f, 1.f);
+	m_virtualEngine.AddKey(0.6f, 1.f);
+	m_virtualEngine.AddKey(0.65f, 0.97f);
+	m_virtualEngine.AddKey(0.95f, 0.33f);
+	m_virtualEngine.AddKey(1.f, 0.3f);
 }
 
 void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 {
+	// TODO TURN WHEEL
+	m_currentTurnAngle = MoveTowards(m_currentTurnAngle, inputs.steer * m_steeringAngle, (m_steeringAngle / m_steeringSpeed) * deltaTime);
+
+	if (m_currentTurnAngle != 0.f)
+	{
+		// Angle of the other wheel
+		float r = m_frontRearDistance / std::sin(m_currentTurnAngle * DegToRad);
+		float b = std::sqrt(std::pow(r, 2) - std::pow(m_frontRearDistance, 2));
+		float angle = std::atan(m_frontRearDistance / (m_rearWheelDistance + b)) * RadToDeg;
+
+		if (m_currentTurnAngle > 0.f)
+		{
+			m_frontRightWheel.wheelTrs.q = EulerAngleToQuat(0.f, m_currentTurnAngle, 0.f);
+			m_frontLeftWheel.wheelTrs.q = EulerAngleToQuat(0.f, angle, 0.f);
+			//RF_Wheel.transform.localEulerAngles = new Vector3(0f, m_currentTurnAngle, 0f);
+			//LF_Wheel.transform.localEulerAngles = new Vector3(0f, angle, 0f);
+		}
+		else if (m_currentTurnAngle < 0.f)
+		{
+			m_frontLeftWheel.wheelTrs.q = EulerAngleToQuat(0.f, m_currentTurnAngle, 0.f);
+			m_frontRightWheel.wheelTrs.q = EulerAngleToQuat(0.f, -angle, 0.f);
+			//LF_Wheel.transform.localEulerAngles = new Vector3(0f, m_currentTurnAngle, 0f);
+			//RF_Wheel.transform.localEulerAngles = new Vector3(0f, -angle, 0f);
+		}
+	}
+	else
+	{
+		// Return to 0;
+		m_frontLeftWheel.wheelTrs.q = physx::PxQuat(1);
+		m_frontRightWheel.wheelTrs.q = physx::PxQuat(1);
+		//LF_Wheel.transform.localEulerAngles = new Vector3(0f, 0f, 0f);
+		//RF_Wheel.transform.localEulerAngles = new Vector3(0f, 0f, 0f);
+	}
+
 	bool fullyGrounded = true;
 
-	fullyGrounded &= UpdateWheelPhysics(m_frontLeftWheel, true, inputs, deltaTime);
-	fullyGrounded &= UpdateWheelPhysics(m_frontRightWheel, true, inputs, deltaTime);
-	fullyGrounded &= UpdateWheelPhysics(m_rearLeftWheel, false, inputs, deltaTime);
-	fullyGrounded &= UpdateWheelPhysics(m_rearRightWheel, false, inputs, deltaTime);
-
-	return;
+	fullyGrounded &= UpdateWheelPhysics(m_frontLeftWheel, m_frontTireFriction, inputs, deltaTime);
+	fullyGrounded &= UpdateWheelPhysics(m_frontRightWheel, m_frontTireFriction, inputs, deltaTime);
+	fullyGrounded &= UpdateWheelPhysics(m_rearLeftWheel, m_rearTireFriction, inputs, deltaTime);
+	fullyGrounded &= UpdateWheelPhysics(m_rearRightWheel, m_rearTireFriction, inputs, deltaTime);
 
 	physx::PxVec3 linearVelocity = m_actor->getLinearVelocity();
 	if (fullyGrounded)
@@ -64,7 +117,7 @@ void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 	}
 }
 
-const physx::PxRigidDynamic& ClientCar::GetPhysixActor() const
+physx::PxRigidDynamic& ClientCar::GetPhysixActor() const
 {
 	return *m_actor;
 }
@@ -89,7 +142,7 @@ float ClientCar::GetRearRightWheelVelocity() const
 	return m_rearRightWheel.suspensionVelocity;
 }
 
-bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const PlayerInput& inputs, float deltaTime)
+bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictionTimeLine, const PlayerInput& inputs, float deltaTime)
 {
 	physx::PxVec3 startPos = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p);
 	physx::PxVec3 dir = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, -1.0f, 0.0f));
@@ -108,7 +161,7 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const 
 		physx::PxTransform globalWheelTrs = m_actor->getGlobalPose() * wheelData.wheelTrs;
 		physx::PxVec3 wheelForward = globalWheelTrs.q.rotate(physx::PxVec3(0.0f, 0.0f, 1.0f));
 
-		/*if (inputs.brake)
+		if (inputs.brake)
 		{
 			if (carSpeed < -0.1f)
 				physicForce = wheelForward * m_breakForce;
@@ -128,7 +181,7 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const 
 				else if (normelizeSpeed < 1.f)
 				{
 					// Move forward
-					float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_engineTorque;
+					float availableTorque = m_virtualEngine.Evaluate(normelizeSpeed) * m_engineTorque;
 					physicForce = wheelForward * availableTorque;
 				}
 			}
@@ -141,11 +194,11 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const 
 				else if (normelizeSpeed < 1.f)
 				{
 					// Move backward
-					float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_engineTorque * -0.8f;
+					float availableTorque = m_virtualEngine.Evaluate(normelizeSpeed) * m_engineTorque * -0.8f;
 					physicForce = wheelForward * availableTorque;
 				}
 			}
-		}*/
+		}
 
 		// -------------------------- Vertical Force (suspension) --------------------------
 		physx::PxVec3 up = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 1.0f, 0.0f));
@@ -155,30 +208,22 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const 
 		physicForce += up * ((offset * m_springStrenght) - (currentVelocity * m_damping));
 		wheelData.suspensionVelocity = offset;
 
+		
 		// ------------------------ Horizontal Force (side friction) ------------------------
-		/*physx::PxVec3 globalPoint = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p);
-		physx::PxVec3 relativePosition = globalPoint - m_actor->getGlobalPose().p;
+		//physx::PxVec3 globalPoint = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p);
+		//physx::PxVec3 relativePosition = globalPoint - m_actor->getGlobalPose().p;
 
-		physx::PxVec3 wheelVelocity = m_actor->getLinearVelocity() + m_actor->getAngularVelocity().cross(relativePosition);
+		physx::PxVec3 wheelVelocity = physx::PxRigidBodyExt::getVelocityAtOffset(*m_actor, wheelData.wheelTrs.p);
 		physx::PxVec3 wheelRight = globalWheelTrs.q.rotate(physx::PxVec3(1.0f, 0.0f, 0.0f));
 
 		float steeringVel = wheelRight.dot(wheelVelocity);
 		float friction = std::abs(steeringVel / wheelVelocity.magnitude());
-		float desireVelChange = -steeringVel * 1.f;
-		//float desireVelChange = -steeringVel * frictionCurve.Evaluate(friction);
+		float desireVelChange = -steeringVel * frictionTimeLine.Evaluate(friction);
 		float desireAccel = desireVelChange / deltaTime;
 
-		physicForce += wheelRight * m_tireMass * desireAccel;*/
+		physicForce += wheelRight * m_tireMass * desireAccel;
 
-		// m_actor->addForce(physicForce);
-
-		physx::PxRigidBodyExt::addLocalForceAtLocalPos(*m_actor, physicForce, wheelData.wheelTrs.p);
-
-		//physx::PxVec3 globalPosition = m_actor->getGlobalPose().transform(wheelData.wheelTrs.p) - m_actor->getGlobalPose().transform(m_actor->getCMassLocalPose().p);
-		//m_actor->getGlobalPose().p + m_actor->getCMassLocalPose().p;
-
-		//physx::PxVec3 torque = globalPosition.cross(physicForce);
-		//m_actor->addTorque(torque);
+		physx::PxRigidBodyExt::addForceAtLocalPos(*m_actor, physicForce, wheelData.wheelTrs.p);
 
 		return true;
 	}
@@ -186,6 +231,25 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const 
 	return false;
 }
 
-float ClientCar::Clamp(float n, float lower, float upper) {
+float ClientCar::Clamp(float n, float lower, float upper) const
+{
 	return std::max(lower, std::min(n, upper));
+}
+
+float ClientCar::MoveTowards(float current, float target, float maxDelta) const
+{
+	if (std::abs(target - current) <= maxDelta) {
+		return target;
+	}
+	return current + std::copysign(maxDelta, target - current);
+}
+
+physx::PxQuat ClientCar::EulerAngleToQuat(float x, float y, float z) const
+{
+	// qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(roll / 2) * np.sin(pitch / 2) * np.sin(yaw / 2)
+	// qy = np.cos(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2)
+	// qz = np.cos(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2) - np.sin(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2)
+	// qw = np.cos(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.sin(pitch / 2) * np.sin(yaw / 2)
+
+	return physx::PxQuat();
 }

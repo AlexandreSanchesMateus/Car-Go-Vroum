@@ -1,4 +1,6 @@
 ﻿#pragma once
+
+#include "CarGoServer/Timeline.hpp"
 #include <memory>
 #include <PxPhysicsAPI.h>
 
@@ -14,7 +16,7 @@ class ClientCar
 {
 public:
 	ClientCar(std::uint16_t playerIndex, physx::PxRigidDynamic* dynamicCar, physx::PxScene* scene, physx::PxPhysics* physics);
-	~ClientCar();
+	~ClientCar() = default;
 
 	ClientCar(const ClientCar&) = default;
 	ClientCar(ClientCar&&) = default;
@@ -22,8 +24,8 @@ public:
 	ClientCar& operator=(const ClientCar&) = delete;
 	ClientCar& operator=(ClientCar&&) = default;
 
-	void UpdatePhysics(const PlayerInput& inputs, float deltaTime);
-	const physx::PxRigidDynamic& GetPhysixActor() const;
+	void UpdatePhysics(const PlayerInput& inputs,float deltaTime);
+	physx::PxRigidDynamic& GetPhysixActor() const;
 
 	float GetFrontLeftWheelVelocity() const;
 	float GetFrontRightWheelVelocity() const;
@@ -31,8 +33,10 @@ public:
 	float GetRearRightWheelVelocity() const;
 
 private:
-	bool UpdateWheelPhysics(WheelData& wheelData, bool frontWheel, const PlayerInput& inputs, float deltaTime);
-	float Clamp(float n, float lower, float upper);
+	bool UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictionTimeLine, const PlayerInput& inputs, float deltaTime);
+	float Clamp(float n, float lower, float upper) const;
+	float MoveTowards(float current, float target, float maxDelta) const;
+	physx::PxQuat EulerAngleToQuat(float x, float y, float z) const;
 
 	std::uint16_t m_playerIndex;
 
@@ -46,10 +50,11 @@ private:
 	float m_damping;
 
 	float m_tireMass;
-	// anim curve for friction (frontTireFriction, rearTireFriction)
+	Timeline m_frontTireFriction;
+	Timeline m_rearTireFriction;
 
 	float m_engineTorque;
-	// anim curve for virtualEngine
+	Timeline m_virtualEngine;
 	float m_topSpeed;
 	float m_topReverseSpeed;
 	float m_breakForce;
@@ -63,6 +68,9 @@ private:
 	float m_flipingForce;
 
 	bool m_canFlip;
+	float m_currentTurnAngle;
+	float m_frontRearDistance;
+	float m_rearWheelDistance;
 
 	physx::PxRigidDynamic* m_actor;
 	physx::PxScene* m_gScene;

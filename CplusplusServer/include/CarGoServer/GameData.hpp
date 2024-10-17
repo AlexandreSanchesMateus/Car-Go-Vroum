@@ -12,6 +12,7 @@ struct GameData
 	Map map;
 
 	bool waitingStateInit = false;
+	bool lastGameInfectedWins = false;
 
 	std::uint32_t endTimer;
 	std::uint32_t timer;

@@ -26,9 +26,17 @@ void Map::SimulatePhysics(float elapsedTime)
 	m_gScene->fetchResults(true);
 }
 
-void Map::Clear()
+void Map::Clear(GameData& gameData)
 {
 	// remove all cars
+	for (Player& player : gameData.players)
+	{
+		player.car = nullptr;
+	}
+
+	for (const ClientCar& car : clientCars) {
+		m_gScene->removeActor(car.GetPhysixActor(), false);
+	}
 }
 
 physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfected)
@@ -42,14 +50,17 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 
 	physx::PxShape* boxShape1 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.95, 0.3, 2.75)), *m_gMaterial);
 	physx::PxShape* boxShape2 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.7, 0.245, 0.975)), *m_gMaterial);
-	boxShape2->setLocalPose(physx::PxTransform(physx::PxVec3(0.0, 0.5, 0.0), physx::PxQuat(1)));
+	boxShape2->setLocalPose(physx::PxTransform(physx::PxVec3(0.0, 0.5, 0.0)));
 
 	dynamicCar->attachShape(*boxShape1);
 	dynamicCar->attachShape(*boxShape2);
 
-	physx::PxRigidBodyExt::setMassAndUpdateInertia(*dynamicCar, 5.0f);
+	physx::PxRigidBodyExt::setMassAndUpdateInertia(*dynamicCar, 500.0f);
 
 	dynamicCar->setLinearVelocity(physx::PxVec3(0.0f, 0.0f, 0.0f));
+	dynamicCar->setCMassLocalPose(physx::PxTransform(physx::PxVec3(0, -0.05f, 0.25f)));
+
+	dynamicCar->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, true);
 
 	m_gScene->addActor(*dynamicCar);
 
@@ -120,12 +131,12 @@ void Map::InitPhysics()
     m_gMaterial = m_gPhysics->createMaterial(0.6f, 0.6f, 0.f); // Unity Default Params
 
 	fmt::print("    => ");
-	fmt::print(stderr, fg(fmt::color::green), "Phisx Initialized\n");
+	fmt::print(stderr, fg(fmt::color::green), "Physx Initialized\n");
 
 	UnserializeMap(MapPath);
 
 	fmt::print("    => ");
-	fmt::print(stderr, fg(fmt::color::green), "Map Deserialized\n");
+	fmt::print(stderr, fg(fmt::color::green), "Map Deserialized\n\n");
 }
 
 void Map::UnserializeMap(std::string mapPath) {

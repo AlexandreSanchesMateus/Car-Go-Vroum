@@ -25,8 +25,8 @@ public:
 	};
 
 	std::optional<Report> HandleEvent();
-	void ClearLastPrompt();
-	void RecoverLastPrompt();
+	void ClearLastPrompt() const;
+	void RecoverLastPrompt() const;
 
 private:
 	const std::unordered_map<std::string, Action> m_commands = {
