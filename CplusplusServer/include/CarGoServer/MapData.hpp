@@ -89,8 +89,8 @@ public:
 	}
 
 	void from_json(const nlohmann::json& j) {
-		if (j.contains("physicObjects")) {
-			for (const auto& item : j.at("physicObjects")) {
+		if (j.contains("SceneObjects")) {
+			for (const auto& item : j.at("SceneObjects")) {
 				// Vérification du type et création de l'objet
 				std::string type = item.at("Type").get<std::string>();
 				auto obj = createPhysicObject(type); // Appel à createPhysicObject
@@ -103,7 +103,7 @@ public:
 			}
 		}
 		else {
-			std::cerr << "Erreur: Le champ 'physicObjects' est manquant dans le JSON." << std::endl;
+			std::cerr << "Erreur: Le champ 'SceneObjects' est manquant dans le JSON." << std::endl;
 		}
 	}
 };
