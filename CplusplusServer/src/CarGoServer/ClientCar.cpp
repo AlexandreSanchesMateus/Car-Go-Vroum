@@ -154,7 +154,7 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictio
 		float carSpeed = forward.dot(m_actor->getLinearVelocity());
 
 		// ---------------------- Forward Force (acceleration / break) ----------------------
-		physx::PxTransform globalWheelTrs = m_actor->getGlobalPose() * wheelData.wheelTrs;
+		physx::PxTransform globalWheelTrs = m_actor->getGlobalPose().transform(wheelData.wheelTrs);
 		physx::PxVec3 wheelForward = globalWheelTrs.q.rotate(physx::PxVec3(0.0f, 0.0f, 1.0f));
 
 		if (inputs.brake)

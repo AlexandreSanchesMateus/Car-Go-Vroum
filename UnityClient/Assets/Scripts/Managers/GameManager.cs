@@ -40,13 +40,13 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
-        Physics.simulationMode = SimulationMode.Script;
+        /*Physics.simulationMode = SimulationMode.Script;
 
         SCORef.Game = this;
         SCORef.GameData.state = GameData.GameState.WAITING_GAME_START;
 
         m_ownPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == SCORef.GameData.ownPlayerIndex; });
-        return;
+        return;*/
 
         // Manually simutale physics
         Physics.simulationMode = SimulationMode.Script;
