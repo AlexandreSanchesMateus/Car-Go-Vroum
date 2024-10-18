@@ -46,6 +46,8 @@ ClientCar::ClientCar(std::uint16_t playerIndex, physx::PxRigidDynamic* dynamicCa
 	m_virtualEngine.AddKey(0.65f, 0.97f);
 	m_virtualEngine.AddKey(0.95f, 0.33f);
 	m_virtualEngine.AddKey(1.f, 0.3f);
+
+	m_actor->userData = this;
 }
 
 void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
