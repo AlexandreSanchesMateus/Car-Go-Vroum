@@ -4,6 +4,8 @@
 #include "CarGoServer/ClientCar.hpp"
 #include <physx/PxPhysicsAPI.h>
 #include <physx/cooking/PxCooking.h>
+#include <vector>
+#include <memory>
 
 struct GameData;
 
@@ -34,7 +36,7 @@ private:
 	// PAS UTILISE !
 	MapData m_mapData;
 
-	std::vector<ClientCar> clientCars;
+	std::vector<std::shared_ptr<ClientCar>> clientCars;
 
 	physx::PxDefaultAllocator m_gAllocator;
 	physx::PxDefaultErrorCallback m_gErrorCallback;

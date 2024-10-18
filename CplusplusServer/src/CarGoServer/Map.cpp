@@ -34,8 +34,9 @@ void Map::Clear(GameData& gameData)
 		player.car = nullptr;
 	}
 
-	for (const ClientCar& car : clientCars) {
-		m_gScene->removeActor(car.GetPhysixActor(), false);
+	for (const std::shared_ptr<ClientCar>& car : clientCars)
+	{
+		m_gScene->removeActor(car->GetPhysixActor(), false);
 	}
 
 	clientCars.clear();
@@ -102,13 +103,17 @@ void Map::InitPlayers(GameData& gameData)
 	int survivorCount = 0;
 	for (Player& player : gameData.players)
 	{
+		if (player.peer == nullptr || player.IsPending())
+			continue;
+
 		if (player.isInfected)
 			player.spawnSlotId = infectedCount++;
 		else
 			player.spawnSlotId = survivorCount++;
 
-		ClientCar& carController = clientCars.emplace_back(ClientCar(player.index, CreateRigidCar(player.spawnSlotId, player.isInfected), m_gScene, m_gPhysics));
-		player.car = &carController;
+		std::shared_ptr<ClientCar> carController = std::make_shared<ClientCar>(ClientCar(player.index, CreateRigidCar(player.spawnSlotId, player.isInfected), m_gScene, m_gPhysics));
+		clientCars.emplace_back(carController);
+		player.car = carController;
 	}
 }
 

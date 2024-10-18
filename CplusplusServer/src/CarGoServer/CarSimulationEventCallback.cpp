@@ -15,8 +15,8 @@ void CarSimulationEventCallback::onContact(const physx::PxContactPairHeader& pai
 
     if (car0 && car1)
     {
-        auto itCar0 = std::find_if(m_gameData.players.begin(), m_gameData.players.end(), [&](const Player& player) { return player.car == car0; });
-        auto itCar1 = std::find_if(m_gameData.players.begin(), m_gameData.players.end(), [&](const Player& player) { return player.car == car1; });
+        auto itCar0 = std::find_if(m_gameData.players.begin(), m_gameData.players.end(), [&](const Player& player) { return player.car.get() == car0; });
+        auto itCar1 = std::find_if(m_gameData.players.begin(), m_gameData.players.end(), [&](const Player& player) { return player.car.get() == car1; });
 
         if (itCar0 != m_gameData.players.end() && itCar1 != m_gameData.players.end()) 
         {
