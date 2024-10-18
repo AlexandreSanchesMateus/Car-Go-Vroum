@@ -16,4 +16,6 @@ struct GameData
 
 	std::uint32_t endTimer;
 	std::uint32_t timer;
+
+	void CheckGameStatus();
 };

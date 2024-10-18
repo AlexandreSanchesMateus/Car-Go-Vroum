@@ -13,7 +13,6 @@
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, const Command& cmdPrompt);
 void PurgePlayers(const GameData& gameData);
-void CheckGameStatus(GameData& gameData);
 ENetPacket* build_game_data_packet(const GameData& gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(const GameData& gameData);
 ENetPacket* build_player_state_packet(const GameData& gameData, const Player& targetPlayer);
@@ -141,7 +140,7 @@ int main()
 
 						// Check game status
 						if (gameData.state != GameState::LOBBY)
-							CheckGameStatus(gameData);
+							gameData.CheckGameStatus();
 
 					}
 					else
@@ -373,42 +372,6 @@ void PurgePlayers(const GameData& gameData)
 			enet_peer_disconnect(it->peer, (std::uint32_t)DisconnectReport::KICK);
 			fmt::print(stderr, fg(fmt::color::red), "Player #{} kicked (not initialized)\n", it->index);
 		}
-	}
-}
-
-void CheckGameStatus(GameData& gameData)
-{
-	bool playerLeft = false;
-	bool allInfected = true;
-
-	for (const Player& player : gameData.players)
-	{
-		if (player.peer != nullptr && !player.IsPending())
-		{
-			playerLeft = true;
-			if (!player.isInfected)
-			{
-				allInfected = false;
-				break;
-			}
-		}
-	}
-
-	if (!playerLeft)
-	{
-		fmt::print(stderr, fg(fmt::color::red), "No player left in the lobby. Closing ...\n");
-
-		// No player left on this server
-		// Reinitialize
-		gameData.waitingStateInit = false;
-		gameData.map.Clear(gameData);
-		gameData.state = GameState::LOBBY;
-	}
-	else if(allInfected)
-	{
-		// End of the game
-		gameData.lastGameInfectedWins = true;
-		gameData.state = GameState::GAME_FINISHED;
 	}
 }
 
