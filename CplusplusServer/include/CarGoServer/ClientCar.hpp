@@ -36,7 +36,7 @@ private:
 	bool UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictionTimeLine, const PlayerInput& inputs, float deltaTime);
 	float Clamp(float n, float lower, float upper) const;
 	float MoveTowards(float current, float target, float maxDelta) const;
-	physx::PxQuat EulerAngleToQuat(float x, float y, float z) const;
+	physx::PxQuat AngleAxis(float degrees, physx::PxVec3 axis) const;
 
 	std::uint16_t m_playerIndex;
 

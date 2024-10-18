@@ -97,19 +97,7 @@ public class MenuManager : MonoBehaviour
         joinPanel.SetActive(false);
         connectionPanel.SetActive(true);
 
-        // Tentative de connection
-        if (SCORef.Network.Connect(ipInputField.text))
-        {
-            PlayerNamePacket namePacket = new PlayerNamePacket();
-            namePacket.name = pseudoInputField.text;
-            SCORef.Network.BuildAndSendPacketToNetwork<PlayerNamePacket>(namePacket, ENet6.PacketFlags.Reliable, 0);
-        }
-        else
-        {
-            connectionError.text = "Connection failed - Lobby full or invalid ip address";
-            connectionPanel.SetActive(false);
-            joinPanel.SetActive(true);
-        }
+        StartCoroutine(ConnectToNetwork());
     }
 
     public void SendReady()
@@ -275,6 +263,23 @@ public class MenuManager : MonoBehaviour
             case (uint)DisconnectReport.GAME_LAUNCHED:
                 connectionError.text = "Game already started";
                 break;
+        }
+    }
+
+    private IEnumerator ConnectToNetwork()
+    {
+        yield return null;
+        if (SCORef.Network.Connect(ipInputField.text))
+        {
+            PlayerNamePacket namePacket = new PlayerNamePacket();
+            namePacket.name = pseudoInputField.text;
+            SCORef.Network.BuildAndSendPacketToNetwork<PlayerNamePacket>(namePacket, ENet6.PacketFlags.Reliable, 0);
+        }
+        else
+        {
+            connectionError.text = "Connection failed - Lobby full or invalid ip address";
+            connectionPanel.SetActive(false);
+            joinPanel.SetActive(true);
         }
     }
 

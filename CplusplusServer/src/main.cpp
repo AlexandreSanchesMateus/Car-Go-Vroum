@@ -532,13 +532,16 @@ void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt)
 	switch (gameData.state)
 	{
 	case GameState::WAITING_GAME_START:
+	{
+
 		if (gameData.timer >= gameData.endTimer)
 		{
 			cmdPrompt.ClearLastPrompt();
 			GameStateStartMovePacket moveStatePacket;
 			if (!gameData.waitingStateInit)
 			{
-				fmt::println("info : Survivors can move");
+				fmt::print(stderr, fg(fmt::color::yellow), "INFO :");
+				fmt::println(" Survivors can move");
 
 				// send move not infected
 				moveStatePacket.moveInfected = false;
@@ -555,7 +558,8 @@ void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt)
 			}
 			else
 			{
-				fmt::println("info : Infected can move\nGame counter set to {}s", GameDuration);
+				fmt::print(stderr, fg(fmt::color::yellow), "INFO :");
+				fmt::println(" Infected can move\nGame counter set to {}s", GameDuration);
 
 				// send move Infected
 				moveStatePacket.moveInfected = true;
@@ -582,7 +586,7 @@ void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt)
 		}
 		else
 			gameData.timer = now;
-
+	}
 		break;
 
 	case GameState::GAME_STARTED:

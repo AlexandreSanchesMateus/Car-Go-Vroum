@@ -138,7 +138,7 @@ struct GameStateRunningPacket
 
 struct GameStateStartMovePacket
 {
-	static constexpr Opcode opcode = Opcode::S_RunningState;
+	static constexpr Opcode opcode = Opcode::S_StartMovingState;
 
 	bool moveInfected;
 

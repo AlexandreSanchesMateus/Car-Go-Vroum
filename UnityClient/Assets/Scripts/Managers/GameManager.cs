@@ -44,6 +44,8 @@ public class GameManager : MonoBehaviour
 
         SCORef.Game = this;
         SCORef.GameData.state = GameData.GameState.WAITING_GAME_START;
+
+        m_ownPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == SCORef.GameData.ownPlayerIndex; });
         return;
 
         // Manually simutale physics
@@ -141,6 +143,7 @@ public class GameManager : MonoBehaviour
             case EOpcode.S_StartMovingState:
                 {
                     GameStateStartMovePacket gameStateStartMovePacket = GameStateStartMovePacket.Deserialize(byteArray, ref offset);
+                    Debug.Log("Move Packet : " + m_ownPlayer.isInfected + "    " + gameStateStartMovePacket.moveInfected);
 
                     if (m_ownPlayer.isInfected)
                     {
@@ -148,16 +151,16 @@ public class GameManager : MonoBehaviour
                         {
                             inputManager.EnableCarMap();
                             StopAllCoroutines();
-                            StartCoroutine(GoMsg(false));
+                            StartCoroutine(GoMsg());
                         }
                         else
                             StartCoroutine(InitCountDown());
-
                     }
                     else if (!gameStateStartMovePacket.moveInfected)
                     {
+                        Debug.Log("can move");
                         inputManager.EnableCarMap();
-                        StartCoroutine(GoMsg(true));
+                        StartCoroutine(GoMsg());
                     }
                 }
                 break;
@@ -291,14 +294,11 @@ public class GameManager : MonoBehaviour
         infoTxt.text = "1";
     }
 
-    private IEnumerator GoMsg(bool pendingMsg)
+    private IEnumerator GoMsg()
     {
         infoTxt.text = "GO";
         yield return new WaitForSeconds(1.5f);
-        if(pendingMsg)
-            infoTxt.text = "- RESPITE PHASE -";
-        else
-            infoTxt.gameObject.SetActive(false);
+        infoTxt.text = "";
     }
 
     private IEnumerator CountDown()

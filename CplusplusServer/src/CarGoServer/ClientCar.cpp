@@ -62,17 +62,13 @@ void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 
 		if (m_currentTurnAngle > 0.f)
 		{
-			m_frontRightWheel.wheelTrs.q = EulerAngleToQuat(0.f, m_currentTurnAngle, 0.f);
-			m_frontLeftWheel.wheelTrs.q = EulerAngleToQuat(0.f, angle, 0.f);
-			//RF_Wheel.transform.localEulerAngles = new Vector3(0f, m_currentTurnAngle, 0f);
-			//LF_Wheel.transform.localEulerAngles = new Vector3(0f, angle, 0f);
+			m_frontRightWheel.wheelTrs.q = AngleAxis(m_currentTurnAngle, physx::PxVec3(0.f, 1.f, 0.f));
+			m_frontLeftWheel.wheelTrs.q = AngleAxis(angle, physx::PxVec3(0.f, 1.f, 0.f));
 		}
 		else if (m_currentTurnAngle < 0.f)
 		{
-			m_frontLeftWheel.wheelTrs.q = EulerAngleToQuat(0.f, m_currentTurnAngle, 0.f);
-			m_frontRightWheel.wheelTrs.q = EulerAngleToQuat(0.f, -angle, 0.f);
-			//LF_Wheel.transform.localEulerAngles = new Vector3(0f, m_currentTurnAngle, 0f);
-			//RF_Wheel.transform.localEulerAngles = new Vector3(0f, -angle, 0f);
+			m_frontLeftWheel.wheelTrs.q = AngleAxis(m_currentTurnAngle, physx::PxVec3(0.f, 1.f, 0.f));
+			m_frontRightWheel.wheelTrs.q = AngleAxis(-angle, physx::PxVec3(0.f, 1.f, 0.f));
 		}
 	}
 	else
@@ -80,8 +76,6 @@ void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 		// Return to 0;
 		m_frontLeftWheel.wheelTrs.q = physx::PxQuat(1);
 		m_frontRightWheel.wheelTrs.q = physx::PxQuat(1);
-		//LF_Wheel.transform.localEulerAngles = new Vector3(0f, 0f, 0f);
-		//RF_Wheel.transform.localEulerAngles = new Vector3(0f, 0f, 0f);
 	}
 
 	bool fullyGrounded = true;
@@ -244,12 +238,16 @@ float ClientCar::MoveTowards(float current, float target, float maxDelta) const
 	return current + std::copysign(maxDelta, target - current);
 }
 
-physx::PxQuat ClientCar::EulerAngleToQuat(float x, float y, float z) const
+physx::PxQuat ClientCar::AngleAxis(float degrees, physx::PxVec3 axis) const
 {
-	// qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(roll / 2) * np.sin(pitch / 2) * np.sin(yaw / 2)
-	// qy = np.cos(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2)
-	// qz = np.cos(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2) - np.sin(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2)
-	// qw = np.cos(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.sin(pitch / 2) * np.sin(yaw / 2)
+	float radians = degrees * DegToRad;
+	radians *= 0.5f;
 
-	return physx::PxQuat();
+	float sina, cosa;
+	sina = std::sin(radians);
+	cosa = std::cos(radians);
+
+	axis *= sina;
+
+	return physx::PxQuat(axis.x, axis.y, axis.z, cosa);
 }
