@@ -165,7 +165,7 @@ void Map::UnserializeMap(std::string mapPath) {
 	{
 		if (obj) 
 		{
-			if (obj->Type == "Capsule")
+			if (obj->type == "capsule")
 			{
 				CapsuleObject* capsule = dynamic_cast<CapsuleObject*>(obj.get());
 
@@ -175,7 +175,7 @@ void Map::UnserializeMap(std::string mapPath) {
 				aCapsuleShape->setLocalPose(relativePose);
 				m_gScene->addActor(*capsuleStaticActor);
 			}
-			else if (obj->Type == "Sphere") 
+			else if (obj->type == "sphere") 
 			{
 				SphereObject* sphere = dynamic_cast<SphereObject*>(obj.get());
 
@@ -186,7 +186,7 @@ void Map::UnserializeMap(std::string mapPath) {
 				
 				m_gScene->addActor(*sphereStaticActor);
 			}
-			else if (obj->Type == "Box")
+			else if (obj->type == "box")
 			{
 				BoxObject* box = dynamic_cast<BoxObject*>(obj.get());
 
@@ -197,7 +197,7 @@ void Map::UnserializeMap(std::string mapPath) {
 
 				m_gScene->addActor(*boxStaticActor);
 			}
-			else if (obj->Type == "Mesh") 
+			else if (obj->type == "mesh") 
 			{
 				MeshObject* mesh = dynamic_cast<MeshObject*>(obj.get());
 				physx::PxTriangleMeshDesc meshDesc;

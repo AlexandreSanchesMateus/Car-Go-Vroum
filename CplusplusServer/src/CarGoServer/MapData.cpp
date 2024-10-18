@@ -18,7 +18,7 @@ void from_json(const nlohmann::json& j, std::vector <physx::PxVec3 > & vertices)
 }
 
 CapsuleObject::CapsuleObject() {
-	Type = "Capsule";
+	type = "capsule";
 }
 
 void CapsuleObject::from_json(const nlohmann::json& j) {
@@ -34,7 +34,7 @@ void CapsuleObject::CreatePhysxObject() {
 }
 
 SphereObject::SphereObject() {
-	Type = "Sphere";
+	type = "sphere";
 }
 
 void SphereObject::from_json(const nlohmann::json& j) {
@@ -44,7 +44,7 @@ void SphereObject::from_json(const nlohmann::json& j) {
 }
 
 BoxObject::BoxObject() {
-	Type = "Box";
+	type = "box";
 }
 
 void BoxObject::from_json(const nlohmann::json& j) {
@@ -55,7 +55,7 @@ void BoxObject::from_json(const nlohmann::json& j) {
 }
 
 MeshObject::MeshObject() {
-	Type = "Mesh";
+	type = "mesh";
 }
 
 void MeshObject::from_json(const nlohmann::json& j) {
@@ -64,4 +64,42 @@ void MeshObject::from_json(const nlohmann::json& j) {
 	::from_json(j.at("rotation"), rotation);
 	::from_json(j.at("vertices"), vertices);
 	j.at("triangles").get_to(triangles);
+}
+
+std::shared_ptr<PhysicObject> MapData::createPhysicObject(const std::string& type) {
+	if (type == "capsule") {
+		return std::make_shared<CapsuleObject>();
+	}
+	else if (type == "sphere") {
+		return std::make_shared<SphereObject>();
+	}
+	else if (type == "box") {
+		return std::make_shared<BoxObject>();
+	}
+	else if (type == "mesh") {
+		return std::make_shared<MeshObject>();
+	}
+	else {
+		std::cerr << "Type inconnu: " << type << std::endl;
+		return nullptr; // Retourne nullptr pour un type inconnu
+	}
+}
+
+void MapData::from_json(const nlohmann::json& j) {
+	if (j.contains("SceneObjects")) {
+		for (const auto& item : j.at("SceneObjects")) {
+			// Vérification du type et création de l'objet
+			std::string type = item.at("type").get<std::string>();
+			auto obj = createPhysicObject(type); // Appel à createPhysicObject
+
+			if (obj) {
+				// Désérialise l'objet
+				obj->from_json(item);
+				physicObjects.push_back(obj); // Ajoute l'objet au vecteur
+			}
+		}
+	}
+	else {
+		std::cerr << "Erreur: Le champ 'SceneObjects' est manquant dans le JSON." << std::endl;
+	}
 }
