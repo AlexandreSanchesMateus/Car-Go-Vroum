@@ -16,6 +16,9 @@ public class SceneSerializer : EditorWindow
         SceneData sceneData = new SceneData();
         foreach (var collider in colliders)
         {
+            if (collider.tag == "Player")
+                continue;
+
             switch (collider)
             {
                 case SphereCollider:
@@ -96,7 +99,7 @@ public class SceneSerializer : EditorWindow
         
         for (int i = 0; i < meshCollider.sharedMesh.vertices.Length; i++)
         {
-            vertices[i] = meshCollider.sharedMesh.vertices[i].ToFloat3();
+            vertices[i] = meshCollider.sharedMesh.vertices[i].Multiply(meshCollider.transform.localScale).ToFloat3();
         }
         
         return new MeshObject

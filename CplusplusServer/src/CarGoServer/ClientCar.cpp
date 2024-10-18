@@ -175,7 +175,7 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictio
 				else if (normelizeSpeed < 1.f)
 				{
 					// Move forward
-					float availableTorque = m_virtualEngine.Evaluate(normelizeSpeed) * m_engineTorque;
+					float availableTorque = m_virtualEngine.Evaluate(normelizeSpeed) * inputs.acceleration * m_engineTorque;
 					physicForce = wheelForward * availableTorque;
 				}
 			}
@@ -188,7 +188,7 @@ bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictio
 				else if (normelizeSpeed < 1.f)
 				{
 					// Move backward
-					float availableTorque = m_virtualEngine.Evaluate(normelizeSpeed) * m_engineTorque * -0.8f;
+					float availableTorque = m_virtualEngine.Evaluate(normelizeSpeed) * inputs.acceleration * m_engineTorque * 0.8f;
 					physicForce = wheelForward * availableTorque;
 				}
 			}

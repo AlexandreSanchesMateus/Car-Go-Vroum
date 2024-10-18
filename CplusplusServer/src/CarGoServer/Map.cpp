@@ -37,6 +37,8 @@ void Map::Clear(GameData& gameData)
 	for (const ClientCar& car : clientCars) {
 		m_gScene->removeActor(car.GetPhysixActor(), false);
 	}
+
+	clientCars.clear();
 }
 
 physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfected)
