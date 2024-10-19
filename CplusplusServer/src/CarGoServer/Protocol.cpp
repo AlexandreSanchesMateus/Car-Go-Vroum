@@ -236,12 +236,14 @@ PlayerReadyPacket PlayerReadyPacket::Deserialize(const std::vector<std::uint8_t>
 
 void PlayerInputPacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
+	Serialize_u16(byteArray, inputIndex);
 	inputs.Serialize(byteArray);
 }
 
 PlayerInputPacket PlayerInputPacket::Deserialize(const std::vector<std::uint8_t>& byteArray, std::size_t& offset)
 {
 	PlayerInputPacket packet;
+	packet.inputIndex = Deserialize_u16(byteArray, offset);
 	packet.inputs = PlayerInput::Deserialize(byteArray, offset);
 
 	return packet;
@@ -398,9 +400,7 @@ GameStateFinishPacket GameStateFinishPacket::Deserialize(const std::vector<std::
 void PlayersStatePacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
 	// Prediction / Reconciliation
-	//Serialize_u16(byteArray, inputIndex);
-
-	// turn
+	Serialize_u16(byteArray, inputIndex);
 	Serialize_f32(byteArray, localTurnAngle);
 
 	// position
@@ -478,7 +478,9 @@ PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_
 {
 	PlayersStatePacket packet;
 
-	//packet.inputIndex = Deserialize_u16(byteArray, offset);
+	packet.inputIndex = Deserialize_u16(byteArray, offset);
+	packet.localTurnAngle = Deserialize_f32(byteArray, offset);
+
 	packet.localPosition.x = Deserialize_f32(byteArray, offset);
 	packet.localPosition.y = Deserialize_f32(byteArray, offset);
 	packet.localPosition.z = Deserialize_f32(byteArray, offset);
@@ -488,7 +490,7 @@ PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_
 	packet.localRotation.z = Deserialize_f32(byteArray, offset);
 	packet.localRotation.w = Deserialize_f32(byteArray, offset);
 
-	packet.localAtRest = Deserialize_u8(byteArray, offset) == 1;
+	packet.localAtRest = Deserialize_u8(byteArray, offset) != 0;
 	if (!packet.localAtRest)
 	{
 		packet.localLinearVelocity.x = Deserialize_f32(byteArray, offset);
@@ -511,6 +513,7 @@ PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_
 		PlayerState player;
 		player.playerIndex = Deserialize_u16(byteArray, offset);
 		player.inputs = PlayerInput::Deserialize(byteArray, offset);
+		player.turnAngle = Deserialize_f32(byteArray, offset);
 
 		player.position.x = Deserialize_f32(byteArray, offset);
 		player.position.y = Deserialize_f32(byteArray, offset);
@@ -521,7 +524,7 @@ PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_
 		player.rotation.z = Deserialize_f32(byteArray, offset);
 		player.rotation.w = Deserialize_f32(byteArray, offset);
 
-		player.atRest = Deserialize_u8(byteArray, offset) == 1;
+		player.atRest = Deserialize_u8(byteArray, offset) != 0;
 		if (!player.atRest)
 		{
 			player.linearVelocity.x = Deserialize_f32(byteArray, offset);

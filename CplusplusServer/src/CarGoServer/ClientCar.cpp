@@ -5,7 +5,7 @@
 #include <fmt/core.h>
 
 ClientCar::ClientCar(std::uint16_t playerIndex, physx::PxRigidDynamic* dynamicCar, physx::PxScene* scene, physx::PxPhysics* physics)
-	: m_playerIndex(playerIndex), m_actor(dynamicCar), m_gScene(scene), m_gPhysics(physics), m_canFlip(false), m_currentTurnAngle(0.f)
+	: m_playerIndex(playerIndex), m_actor(dynamicCar), m_gScene(scene), m_gPhysics(physics), m_fligging(false), m_flipTimer(0.f), m_currentTurnAngle(0.f)
 {
 	// Wheels Positions
 	m_frontLeftWheel.suspensionVelocity = 0.f;
@@ -99,18 +99,32 @@ void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 		else
 			m_actor->setCMassLocalPose(physx::PxTransform(0, -0.05f, -0.04f));
 	}
-	else if(inputs.softRecover)
+	else if(!m_fligging && inputs.softRecover)
 	{
 		// TODO FLIP CAR
 
 		physx::PxVec3 up = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 1.0f, 0.0f));
 		if (up.dot(linearVelocity) < 0.6f && linearVelocity.magnitude() < 0.05f)
 		{
+			m_actor->addForce(physx::PxVec3(0.f, 1.f, 0.f) * RecoverForce, physx::PxForceMode::eVELOCITY_CHANGE);
 
+			//m_fligging = true;
+			m_flipTimer = 0.f;
 		}
 	}
 
-	//physx::PxVec3 forward = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 0.0f, 1.0f));
+	/*if (m_fligging)
+	{
+		m_flipTimer += deltaTime;
+		if (m_flipTimer >= TimeBeforeFliping)
+		{
+			physx::PxVec3 forward = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 0.0f, 1.0f));
+			m_actor->getGlobalPose().q.getAngle(AngleAxis())
+
+			m_actor->addTorque(physx::PxVec3(0.f, 0.f, angle / 180.f ) * FlipingForce, physx::PxForceMode::eVELOCITY_CHANGE);
+		}
+	}*/
+
 	//fmt::println("speed : {}", (int)(std::abs(forward.dot(m_actor->getLinearVelocity()) * 3.6f)));
 }
 

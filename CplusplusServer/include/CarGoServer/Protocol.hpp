@@ -33,8 +33,6 @@ enum class Opcode : std::uint8_t
 	S_FinishedState,       // the game have finished (who wins)
 	S_PlayersState,
 	S_PlayerInfected,
-
-	S_DebugCollision
 };
 
 
@@ -62,6 +60,7 @@ struct PlayerInputPacket
 {
 	static constexpr Opcode opcode = Opcode::C_PlayerInputs;
 
+	std::uint16_t inputIndex;
 	PlayerInput inputs;
 
 	void Serialize(std::vector<std::uint8_t>& byteArray) const;
@@ -190,10 +189,12 @@ struct PlayersStatePacket
 	};
 
 	// Prediction / Reconciliation
-	//std::uint16_t inputIndex;
+	std::uint16_t inputIndex;
 	float localTurnAngle;
+
 	physx::PxVec3 localPosition;
 	physx::PxQuat localRotation;
+
 	bool localAtRest;
 	physx::PxVec3 localLinearVelocity;
 	physx::PxVec3 localAngularVelocity;

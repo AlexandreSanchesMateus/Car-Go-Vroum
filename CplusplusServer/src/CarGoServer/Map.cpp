@@ -74,9 +74,6 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 
 	dynamicCar->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, true);
 
-	fmt::println("Center of mass : {}    {}    {}", dynamicCar->getCMassLocalPose().p.x, dynamicCar->getCMassLocalPose().p.y, dynamicCar->getCMassLocalPose().p.z);
-	fmt::println("Space inertia : {}    {}    {}", dynamicCar->getMassSpaceInertiaTensor().x, dynamicCar->getMassSpaceInertiaTensor().y, dynamicCar->getMassSpaceInertiaTensor().z);
-
 	m_gScene->addActor(*dynamicCar);
 
 	boxShape1->release();

@@ -1,11 +1,9 @@
-using NetworkProtocol;
-using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
-public class PredictedState
+public class PhysicState
 {
-    public UInt16 inputIndex;
-
     public Vector3 position;
     public Quaternion rotation;
 
@@ -16,9 +14,4 @@ public class PredictedState
     public float frontRightWheelVelocity;
     public float rearLeftWheelVelocity;
     public float rearRightWheelVelocity;
-
-    public bool IsEqual(PlayersStatePacket.PlayerState state)
-    {
-        throw new NotImplementedException();
-    }
 }

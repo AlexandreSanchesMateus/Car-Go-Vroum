@@ -48,7 +48,9 @@ private:
 	Timeline m_rearTireFriction;
 	Timeline m_virtualEngine;
 
-	bool m_canFlip;
+	bool m_fligging;
+	float m_flipTimer;
+
 	float m_currentTurnAngle;
 	float m_frontRearDistance;
 	float m_rearWheelDistance;

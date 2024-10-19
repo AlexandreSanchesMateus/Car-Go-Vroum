@@ -25,8 +25,6 @@ namespace NetworkProtocol
         S_FinishedState,
         S_PlayersState,
         S_PlayerInfected,
-
-        S_DebugCollision
     }
 
     public enum DisconnectReport : UInt32
@@ -89,17 +87,19 @@ namespace NetworkProtocol
     {
         public PlayerInputPacket() { Opcode = EOpcode.C_PlayerInputs; }
 
+        public UInt16 inputIndex;
         public PlayerInput inputs = new PlayerInput();
-        //public UInt16 inputIndex;
 
         public override void Serialize(List<byte> byteArray)
         {
+            Serializer.Serialize_u16(byteArray, inputIndex);
             inputs.Serialize(byteArray);
         }
 
         public static PlayerInputPacket Deserialize(List<byte> byteArray, ref int offset)
         {
             PlayerInputPacket packet = new PlayerInputPacket();
+            packet.inputIndex = Serializer.Deserialize_u16(byteArray, ref offset);
             packet.inputs = PlayerInput.Deserialize(byteArray, ref offset);
 
             return packet;
@@ -340,62 +340,47 @@ namespace NetworkProtocol
             public PlayerInput inputs;
             public float turnAngle;
 
-            public Vector3 position;
-            public Quaternion rotation;
-
+            public PhysicState physicState;
             public bool atRest;
-            public Vector3 linearVelocity;
-            public Vector3 angularVelocity;
-
-            public float frontLeftWheelVelocity;
-            public float frontRightWheelVelocity;
-            public float rearLeftWheelVelocity;
-            public float rearRightWheelVelocity;
         };
 
         public List<PlayerState> otherPlayerState = new List<PlayerState>();
 
         // Prediction / Reconciliation
-        // std::uint16_t inputIndex;
+        public UInt16 inputIndex;
         public float localTurnAngle;
-        public Vector3 localPosition;
-        public Quaternion localRotation;
+        public PhysicState localPhysicState = new PhysicState();
         public bool localAtRest;
-        public Vector3 localLinearVelocity;
-        public Vector3 localAngularVelocity;
-
-        public float localFrontLeftWheelVelocity;
-        public float localFrontRightWheelVelocity;
-        public float localRearLeftWheelVelocity;
-        public float localRearRightWheelVelocity;
-
 
         public override void Serialize(List<byte> byteArray)
         {
-            Serializer.Serialize_float(byteArray, localPosition.x);
-            Serializer.Serialize_float(byteArray, localPosition.y);
-            Serializer.Serialize_float(byteArray, localPosition.z);
+            Serializer.Serialize_u16(byteArray, inputIndex);
+            Serializer.Serialize_float(byteArray, localTurnAngle);
 
-            Serializer.Serialize_float(byteArray, localRotation.x);
-            Serializer.Serialize_float(byteArray, localRotation.y);
-            Serializer.Serialize_float(byteArray, localRotation.z);
-            Serializer.Serialize_float(byteArray, localRotation.w);
+            Serializer.Serialize_float(byteArray, localPhysicState.position.x);
+            Serializer.Serialize_float(byteArray, localPhysicState.position.y);
+            Serializer.Serialize_float(byteArray, localPhysicState.position.z);
+
+            Serializer.Serialize_float(byteArray, localPhysicState.rotation.x);
+            Serializer.Serialize_float(byteArray, localPhysicState.rotation.y);
+            Serializer.Serialize_float(byteArray, localPhysicState.rotation.z);
+            Serializer.Serialize_float(byteArray, localPhysicState.rotation.w);
 
             Serializer.Serialize_uByte(byteArray, (byte)(localAtRest ? 1 : 0));
             if (!localAtRest)
             {
-                Serializer.Serialize_float(byteArray, localLinearVelocity.x);
-                Serializer.Serialize_float(byteArray, localLinearVelocity.y);
-                Serializer.Serialize_float(byteArray, localLinearVelocity.z);
+                Serializer.Serialize_float(byteArray, localPhysicState.linearVelocity.x);
+                Serializer.Serialize_float(byteArray, localPhysicState.linearVelocity.y);
+                Serializer.Serialize_float(byteArray, localPhysicState.linearVelocity.z);
 
-                Serializer.Serialize_float(byteArray, localAngularVelocity.x);
-                Serializer.Serialize_float(byteArray, localAngularVelocity.y);
-                Serializer.Serialize_float(byteArray, localAngularVelocity.z);
+                Serializer.Serialize_float(byteArray, localPhysicState.angularVelocity.x);
+                Serializer.Serialize_float(byteArray, localPhysicState.angularVelocity.y);
+                Serializer.Serialize_float(byteArray, localPhysicState.angularVelocity.z);
 
-                Serializer.Serialize_float(byteArray, localFrontLeftWheelVelocity);
-                Serializer.Serialize_float(byteArray, localFrontRightWheelVelocity);
-                Serializer.Serialize_float(byteArray, localRearLeftWheelVelocity);
-                Serializer.Serialize_float(byteArray, localRearRightWheelVelocity);
+                Serializer.Serialize_float(byteArray, localPhysicState.frontLeftWheelVelocity);
+                Serializer.Serialize_float(byteArray, localPhysicState.frontRightWheelVelocity);
+                Serializer.Serialize_float(byteArray, localPhysicState.rearLeftWheelVelocity);
+                Serializer.Serialize_float(byteArray, localPhysicState.rearRightWheelVelocity);
             }
 
             Serializer.Serialize_uByte(byteArray, (byte)otherPlayerState.Count);
@@ -403,31 +388,32 @@ namespace NetworkProtocol
             {
                 Serializer.Serialize_u16(byteArray, player.playerIndex);
                 player.inputs.Serialize(byteArray);
+                Serializer.Serialize_float(byteArray, player.turnAngle);
 
-                Serializer.Serialize_float(byteArray, player.position.x);
-                Serializer.Serialize_float(byteArray, player.position.y);
-                Serializer.Serialize_float(byteArray, player.position.z);
+                Serializer.Serialize_float(byteArray, player.physicState.position.x);
+                Serializer.Serialize_float(byteArray, player.physicState.position.y);
+                Serializer.Serialize_float(byteArray, player.physicState.position.z);
 
-                Serializer.Serialize_float(byteArray, player.rotation.x);
-                Serializer.Serialize_float(byteArray, player.rotation.y);
-                Serializer.Serialize_float(byteArray, player.rotation.z);
-                Serializer.Serialize_float(byteArray, player.rotation.w);
+                Serializer.Serialize_float(byteArray, player.physicState.rotation.x);
+                Serializer.Serialize_float(byteArray, player.physicState.rotation.y);
+                Serializer.Serialize_float(byteArray, player.physicState.rotation.z);
+                Serializer.Serialize_float(byteArray, player.physicState.rotation.w);
 
                 Serializer.Serialize_uByte(byteArray, (byte)(player.atRest ? 1 : 0));
                 if(!player.atRest)
                 {
-                    Serializer.Serialize_float(byteArray, player.linearVelocity.x);
-                    Serializer.Serialize_float(byteArray, player.linearVelocity.y);
-                    Serializer.Serialize_float(byteArray, player.linearVelocity.z);
+                    Serializer.Serialize_float(byteArray, player.physicState.linearVelocity.x);
+                    Serializer.Serialize_float(byteArray, player.physicState.linearVelocity.y);
+                    Serializer.Serialize_float(byteArray, player.physicState.linearVelocity.z);
 
-                    Serializer.Serialize_float(byteArray, player.angularVelocity.x);
-                    Serializer.Serialize_float(byteArray, player.angularVelocity.y);
-                    Serializer.Serialize_float(byteArray, player.angularVelocity.z);
+                    Serializer.Serialize_float(byteArray, player.physicState.angularVelocity.x);
+                    Serializer.Serialize_float(byteArray, player.physicState.angularVelocity.y);
+                    Serializer.Serialize_float(byteArray, player.physicState.angularVelocity.z);
 
-                    Serializer.Serialize_float(byteArray, player.frontLeftWheelVelocity);
-                    Serializer.Serialize_float(byteArray, player.frontRightWheelVelocity);
-                    Serializer.Serialize_float(byteArray, player.rearLeftWheelVelocity);
-                    Serializer.Serialize_float(byteArray, player.rearRightWheelVelocity);
+                    Serializer.Serialize_float(byteArray, player.physicState.frontLeftWheelVelocity);
+                    Serializer.Serialize_float(byteArray, player.physicState.frontRightWheelVelocity);
+                    Serializer.Serialize_float(byteArray, player.physicState.rearLeftWheelVelocity);
+                    Serializer.Serialize_float(byteArray, player.physicState.rearRightWheelVelocity);
                 }
             }
         }
@@ -436,32 +422,33 @@ namespace NetworkProtocol
         {
             PlayersStatePacket packet = new PlayersStatePacket();
 
+            packet.inputIndex = Serializer.Deserialize_u16(byteArray, ref offset);
             packet.localTurnAngle = Serializer.Deserialize_float(byteArray, ref offset);
 
-            packet.localPosition.x = Serializer.Deserialize_float(byteArray, ref offset);
-            packet.localPosition.y = Serializer.Deserialize_float(byteArray, ref offset);
-            packet.localPosition.z = Serializer.Deserialize_float(byteArray, ref offset);
+            packet.localPhysicState.position.x = Serializer.Deserialize_float(byteArray, ref offset);
+            packet.localPhysicState.position.y = Serializer.Deserialize_float(byteArray, ref offset);
+            packet.localPhysicState.position.z = Serializer.Deserialize_float(byteArray, ref offset);
 
-            packet.localRotation.x = Serializer.Deserialize_float(byteArray, ref offset);
-            packet.localRotation.y = Serializer.Deserialize_float(byteArray, ref offset);
-            packet.localRotation.z = Serializer.Deserialize_float(byteArray, ref offset);
-            packet.localRotation.w = Serializer.Deserialize_float(byteArray, ref offset);
+            packet.localPhysicState.rotation.x = Serializer.Deserialize_float(byteArray, ref offset);
+            packet.localPhysicState.rotation.y = Serializer.Deserialize_float(byteArray, ref offset);
+            packet.localPhysicState.rotation.z = Serializer.Deserialize_float(byteArray, ref offset);
+            packet.localPhysicState.rotation.w = Serializer.Deserialize_float(byteArray, ref offset);
 
             packet.localAtRest = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
             if (!packet.localAtRest)
             {
-                packet.localLinearVelocity.x = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localLinearVelocity.y = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localLinearVelocity.z = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.linearVelocity.x = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.linearVelocity.y = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.linearVelocity.z = Serializer.Deserialize_u32(byteArray, ref offset);
 
-                packet.localAngularVelocity.x = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localAngularVelocity.y = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localAngularVelocity.z = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.angularVelocity.x = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.angularVelocity.y = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.angularVelocity.z = Serializer.Deserialize_u32(byteArray, ref offset);
 
-                packet.localFrontLeftWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localFrontRightWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localRearLeftWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localRearRightWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.frontLeftWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.frontRightWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.rearLeftWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.rearRightWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
             }
 
             int playerCount = Serializer.Deserialize_uByte(byteArray, ref offset);
@@ -472,30 +459,30 @@ namespace NetworkProtocol
                 player.inputs = PlayerInput.Deserialize(byteArray, ref offset);
                 player.turnAngle = Serializer.Deserialize_float(byteArray, ref offset);
 
-                player.position.x = Serializer.Deserialize_float(byteArray, ref offset);
-                player.position.y = Serializer.Deserialize_float(byteArray, ref offset);
-                player.position.z = Serializer.Deserialize_float(byteArray, ref offset);
+                player.physicState.position.x = Serializer.Deserialize_float(byteArray, ref offset);
+                player.physicState.position.y = Serializer.Deserialize_float(byteArray, ref offset);
+                player.physicState.position.z = Serializer.Deserialize_float(byteArray, ref offset);
 
-                player.rotation.x = Serializer.Deserialize_float(byteArray, ref offset);
-                player.rotation.y = Serializer.Deserialize_float(byteArray, ref offset);
-                player.rotation.z = Serializer.Deserialize_float(byteArray, ref offset);
-                player.rotation.w = Serializer.Deserialize_float(byteArray, ref offset);
+                player.physicState.rotation.x = Serializer.Deserialize_float(byteArray, ref offset);
+                player.physicState.rotation.y = Serializer.Deserialize_float(byteArray, ref offset);
+                player.physicState.rotation.z = Serializer.Deserialize_float(byteArray, ref offset);
+                player.physicState.rotation.w = Serializer.Deserialize_float(byteArray, ref offset);
 
                 player.atRest = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
                 if (!player.atRest)
                 {
-                    player.linearVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
-                    player.linearVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);
-                    player.linearVelocity.z = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.linearVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.linearVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.linearVelocity.z = Serializer.Deserialize_float(byteArray, ref offset);
 
-                    player.angularVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
-                    player.angularVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);
-                    player.angularVelocity.z = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.angularVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.angularVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.angularVelocity.z = Serializer.Deserialize_float(byteArray, ref offset);
 
-                    player.frontLeftWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
-                    player.frontRightWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
-                    player.rearLeftWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
-                    player.rearRightWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.frontLeftWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.frontRightWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.rearLeftWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                    player.physicState.rearRightWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
                 }
 
                 packet.otherPlayerState.Add(player);
@@ -520,25 +507,6 @@ namespace NetworkProtocol
         {
             PlayerInfectedPacket packet = new PlayerInfectedPacket();
             packet.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
-
-            return packet;
-        }
-    }
-
-    public class DebugCollisionPacket : BasePacket
-    {
-        public DebugCollisionPacket() {  Opcode = EOpcode.S_DebugCollision; }
-
-
-
-        public override void Serialize(List<byte> byteArray)
-        {
-
-        }
-
-        public static DebugCollisionPacket Deserialize(List<byte> byteArray, ref int offset)
-        {
-            DebugCollisionPacket packet = new DebugCollisionPacket();
 
             return packet;
         }
