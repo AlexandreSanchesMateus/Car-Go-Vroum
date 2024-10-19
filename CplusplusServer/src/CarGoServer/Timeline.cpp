@@ -17,10 +17,8 @@ void Timeline::AddKey(float time, float value)
 	{
 		std::vector<std::tuple<float, float>>::iterator it = std::find_if(m_timeline.begin(), m_timeline.end(), [](std::tuple<float, float>& key) { return std::get<0>(key) == 1.f; });
 		
-		if (m_timeline.empty())
+		if (m_timeline.empty() || std::get<0>(m_timeline[m_timeline.size() - 1]) != 1.f)
 			m_timeline.push_back(std::make_tuple(1.f, value));
-		else if (std::get<0>(m_timeline[m_timeline.size() - 1]) != 1.f)
-			m_timeline.insert(m_timeline.begin(), std::make_tuple(1.f, value));
 		else
 			std::get<1>(m_timeline[m_timeline.size() - 1]) = value;
 	}
@@ -58,8 +56,11 @@ float Timeline::Evaluate(float time) const
 		return std::get<1>(m_timeline[m_timeline.size() - 1]);
 	else
 	{
-		auto itBefore = std::find_if(m_timeline.rbegin(), m_timeline.rend(), [time](const std::tuple<float, float>& keyValue) { return std::get<0>(keyValue) <= time; });
-		auto itAfter = std::find_if(m_timeline.begin(), m_timeline.end(), [time](const std::tuple<float, float>& keyValue) { return std::get<0>(keyValue) > time; });
+		auto itBefore = std::find_if(m_timeline.rbegin(), m_timeline.rend(), [&](const std::tuple<float, float>& keyValue) { return std::get<0>(keyValue) <= time; });
+		auto itAfter = std::find_if(m_timeline.begin(), m_timeline.end(), [&](const std::tuple<float, float>& keyValue) { return std::get<0>(keyValue) > time; });
+
+		//fmt::print(stderr, fg(fmt::color::yellow), "[Timeline {}]", time);
+		//fmt::println(" Befor : {} <> {}        After : {} <> {}", std::get<0>(*itBefore), std::get<1>(*itBefore), std::get<0>(*itAfter), std::get<1>(*itAfter));
 
 		// entre les deux
 		if (itBefore != m_timeline.rend() && itAfter != m_timeline.end())

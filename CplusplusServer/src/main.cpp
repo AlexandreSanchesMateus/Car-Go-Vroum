@@ -10,6 +10,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include <CarGoServer/Math.hpp>
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, const Command& cmdPrompt);
 void PurgePlayers(const GameData& gameData);
@@ -320,7 +321,7 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 			{
 				cmdPrompt.ClearLastPrompt();
 				PurgePlayers(gameData);
-				fmt::println("-------- GAME STARTED --------");
+				fmt::println("----------------- GAME STARTED -----------------");
 				cmdPrompt.RecoverLastPrompt();
 
 				// init world
@@ -448,6 +449,8 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 		packet.otherPlayersState.push_back(playerState);
 	}
 
+	packet.localTurnAngle = targetPlayer.car->GetCurrentTurnAngle();
+
 	packet.localPosition = targetPlayer.car->GetPhysixActor().getGlobalPose().p;
 	packet.localRotation = targetPlayer.car->GetPhysixActor().getGlobalPose().q;
 
@@ -522,7 +525,9 @@ void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt)
 			else
 			{
 				fmt::print(stderr, fg(fmt::color::yellow), "INFO :");
-				fmt::println(" Infected can move\nGame counter set to {}s", GameDuration);
+				fmt::println(" Infected can move");
+				fmt::print(stderr, fg(fmt::color::yellow), "INFO :");
+				fmt::println(" Game counter set up for {}s", GameDuration);
 
 				// send move Infected
 				moveStatePacket.moveInfected = true;
@@ -577,7 +582,7 @@ void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt)
 		}
 
 		cmdPrompt.ClearLastPrompt();
-		fmt::println("--------- GAME ENDED ---------");
+		fmt::println("------------------ GAME ENDED ------------------");
 		if(gameData.lastGameInfectedWins)
 			fmt::println("INFECTED WINS");
 		else

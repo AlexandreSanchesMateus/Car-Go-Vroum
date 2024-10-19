@@ -29,6 +29,8 @@ public class GameManager : MonoBehaviour
     private TextMeshProUGUI speedTxt;
     [SerializeField, BoxGroup("UI")]
     private TextMeshProUGUI infoTxt;
+    [SerializeField, BoxGroup("UI")]
+    private TextMeshProUGUI counterTxt;
 
     private Player m_ownPlayer = null;
     private float m_gameDuration;
@@ -143,7 +145,6 @@ public class GameManager : MonoBehaviour
             case EOpcode.S_StartMovingState:
                 {
                     GameStateStartMovePacket gameStateStartMovePacket = GameStateStartMovePacket.Deserialize(byteArray, ref offset);
-                    Debug.Log("Move Packet : " + m_ownPlayer.isInfected + "    " + gameStateStartMovePacket.moveInfected);
 
                     if (m_ownPlayer.isInfected)
                     {
@@ -158,7 +159,6 @@ public class GameManager : MonoBehaviour
                     }
                     else if (!gameStateStartMovePacket.moveInfected)
                     {
-                        Debug.Log("can move");
                         inputManager.EnableCarMap();
                         StartCoroutine(GoMsg());
                     }
@@ -176,6 +176,8 @@ public class GameManager : MonoBehaviour
             case EOpcode.S_FinishedState:
                 {
                     GameStateFinishPacket gameStateFinishPacket = GameStateFinishPacket.Deserialize(byteArray, ref offset);
+
+                    infoTxt.gameObject.SetActive(true);
                     if (gameStateFinishPacket.infectedWins)
                         infoTxt.text = "THE INFECTED WINS";
                     else
@@ -199,11 +201,6 @@ public class GameManager : MonoBehaviour
                     {
                         ownCarController.CarRb.velocity = Vector3.zero;
                         ownCarController.CarRb.angularVelocity = Vector3.zero;
-
-                        ownCarController.FrontLeftWheelVelocity = 0f;
-                        ownCarController.FrontRightWheelVelocity = 0f;
-                        ownCarController.RearLeftWheelVelocity = 0f;
-                        ownCarController.RearRightWheelVelocity = 0f;
                     }
                     else
                     {
@@ -230,12 +227,6 @@ public class GameManager : MonoBehaviour
                             {
                                 targetPlayer.carController.CarRb.velocity = Vector3.zero;
                                 targetPlayer.carController.CarRb.angularVelocity = Vector3.zero;
-
-                                // wheels
-                                targetPlayer.carController.FrontLeftWheelVelocity = 0f;
-                                targetPlayer.carController.FrontRightWheelVelocity = 0f;
-                                targetPlayer.carController.RearLeftWheelVelocity = 0f;
-                                targetPlayer.carController.RearRightWheelVelocity = 0f;
                             }
                             else
                             {
@@ -298,7 +289,7 @@ public class GameManager : MonoBehaviour
     {
         infoTxt.text = "GO";
         yield return new WaitForSeconds(1.5f);
-        infoTxt.text = "";
+        infoTxt.gameObject.SetActive(false);
     }
 
     private IEnumerator CountDown()
@@ -308,7 +299,7 @@ public class GameManager : MonoBehaviour
             int seconds = (int)m_gameDuration % 60;
             int minutes = (int)m_gameDuration / 60;
 
-            infoTxt.text = minutes.ToString("D2") + ":" + seconds.ToString("D2");
+            counterTxt.text = minutes.ToString("D2") + ":" + seconds.ToString("D2");
             --m_gameDuration;
             yield return new WaitForSeconds(1);
         }

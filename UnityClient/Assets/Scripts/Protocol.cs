@@ -338,6 +338,8 @@ namespace NetworkProtocol
         {
             public UInt16 playerIndex;
             public PlayerInput inputs;
+            public float turnAngle;
+
             public Vector3 position;
             public Quaternion rotation;
 
@@ -355,6 +357,7 @@ namespace NetworkProtocol
 
         // Prediction / Reconciliation
         // std::uint16_t inputIndex;
+        public float localTurnAngle;
         public Vector3 localPosition;
         public Quaternion localRotation;
         public bool localAtRest;
@@ -433,6 +436,8 @@ namespace NetworkProtocol
         {
             PlayersStatePacket packet = new PlayersStatePacket();
 
+            packet.localTurnAngle = Serializer.Deserialize_float(byteArray, ref offset);
+
             packet.localPosition.x = Serializer.Deserialize_float(byteArray, ref offset);
             packet.localPosition.y = Serializer.Deserialize_float(byteArray, ref offset);
             packet.localPosition.z = Serializer.Deserialize_float(byteArray, ref offset);
@@ -443,17 +448,7 @@ namespace NetworkProtocol
             packet.localRotation.w = Serializer.Deserialize_float(byteArray, ref offset);
 
             packet.localAtRest = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
-            if (packet.localAtRest)
-            {
-                packet.localLinearVelocity = Vector3.zero;
-                packet.localAngularVelocity = Vector3.zero;
-
-                packet.localFrontLeftWheelVelocity = 0f;
-                packet.localFrontRightWheelVelocity = 0f;
-                packet.localRearLeftWheelVelocity = 0f;
-                packet.localRearRightWheelVelocity = 0f;
-            }
-            else
+            if (!packet.localAtRest)
             {
                 packet.localLinearVelocity.x = Serializer.Deserialize_u32(byteArray, ref offset);
                 packet.localLinearVelocity.y = Serializer.Deserialize_u32(byteArray, ref offset);
@@ -475,6 +470,7 @@ namespace NetworkProtocol
                 PlayerState player = new PlayerState();
                 player.playerIndex = Serializer.Deserialize_u16(byteArray, ref offset);
                 player.inputs = PlayerInput.Deserialize(byteArray, ref offset);
+                player.turnAngle = Serializer.Deserialize_float(byteArray, ref offset);
 
                 player.position.x = Serializer.Deserialize_float(byteArray, ref offset);
                 player.position.y = Serializer.Deserialize_float(byteArray, ref offset);
@@ -486,17 +482,7 @@ namespace NetworkProtocol
                 player.rotation.w = Serializer.Deserialize_float(byteArray, ref offset);
 
                 player.atRest = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
-                if (player.atRest)
-                {
-                    player.linearVelocity = Vector3.zero;
-                    player.angularVelocity = Vector3.zero;
-
-                    player.frontLeftWheelVelocity = 0f;
-                    player.frontRightWheelVelocity = 0f;
-                    player.rearLeftWheelVelocity = 0f;
-                    player.rearRightWheelVelocity = 0f;
-                }
-                else
+                if (!player.atRest)
                 {
                     player.linearVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
                     player.linearVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);

@@ -33,7 +33,6 @@ public:
 	physx::PxPhysics* GetPhysics() const;
 
 private:
-	// PAS UTILISE !
 	MapData m_mapData;
 
 	std::vector<std::shared_ptr<ClientCar>> clientCars;

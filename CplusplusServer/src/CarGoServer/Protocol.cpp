@@ -400,6 +400,9 @@ void PlayersStatePacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 	// Prediction / Reconciliation
 	//Serialize_u16(byteArray, inputIndex);
 
+	// turn
+	Serialize_f32(byteArray, localTurnAngle);
+
 	// position
 	Serialize_f32(byteArray, localPosition.x);
 	Serialize_f32(byteArray, localPosition.y);
@@ -436,6 +439,7 @@ void PlayersStatePacket::Serialize(std::vector<std::uint8_t>& byteArray) const
 	{
 		Serialize_u16(byteArray, player.playerIndex);
 		player.inputs.Serialize(byteArray);
+		Serialize_f32(byteArray, player.turnAngle);
 
 		// position
 		Serialize_f32(byteArray, player.position.x);
@@ -485,17 +489,7 @@ PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_
 	packet.localRotation.w = Deserialize_f32(byteArray, offset);
 
 	packet.localAtRest = Deserialize_u8(byteArray, offset) == 1;
-	if (packet.localAtRest)
-	{
-		packet.localLinearVelocity = physx::PxVec3(0.f, 0.f, 0.f);
-		packet.localAngularVelocity = physx::PxVec3(0.f, 0.f, 0.f);
-
-		packet.localFrontLeftWheelVelocity = 0.f;
-		packet.localFrontRightWheelVelocity = 0.f;
-		packet.localRearLeftWheelVelocity = 0.f;
-		packet.localRearRightWheelVelocity = 0.f;
-	}
-	else
+	if (!packet.localAtRest)
 	{
 		packet.localLinearVelocity.x = Deserialize_f32(byteArray, offset);
 		packet.localLinearVelocity.y = Deserialize_f32(byteArray, offset);
@@ -528,17 +522,7 @@ PlayersStatePacket PlayersStatePacket::Deserialize(const std::vector<std::uint8_
 		player.rotation.w = Deserialize_f32(byteArray, offset);
 
 		player.atRest = Deserialize_u8(byteArray, offset) == 1;
-		if (player.atRest)
-		{
-			player.linearVelocity = physx::PxVec3(0.f, 0.f, 0.f);
-			player.angularVelocity = physx::PxVec3(0.f, 0.f, 0.f);
-
-			player.frontLeftWheelVelocity = 0.f;
-			player.frontRightWheelVelocity = 0.f;
-			player.rearLeftWheelVelocity = 0.f;
-			player.rearRightWheelVelocity = 0.f;
-		}
-		else
+		if (!player.atRest)
 		{
 			player.linearVelocity.x = Deserialize_f32(byteArray, offset);
 			player.linearVelocity.y = Deserialize_f32(byteArray, offset);

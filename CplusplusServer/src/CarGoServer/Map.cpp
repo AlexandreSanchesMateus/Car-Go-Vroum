@@ -55,15 +55,27 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 	physx::PxShape* boxShape2 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.7, 0.245, 0.975)), *m_gMaterial);
 	boxShape2->setLocalPose(physx::PxTransform(physx::PxVec3(0.0, 0.5, 0.0)));
 
+	boxShape1->setContactOffset(0.01f); // unity default
+	boxShape1->setRestOffset(0.f); // unity default
+	boxShape2->setContactOffset(0.01f); // unity default
+	boxShape2->setRestOffset(0.f); // unity default
+
 	dynamicCar->attachShape(*boxShape1);
 	dynamicCar->attachShape(*boxShape2);
 
-	physx::PxRigidBodyExt::setMassAndUpdateInertia(*dynamicCar, 500.0f);
+	// physx::PxRigidBodyExt::setMassAndUpdateInertia(*dynamicCar, 500.0f);
+	dynamicCar->setMassSpaceInertiaTensor(physx::PxVec3(1116.45f, 1213.20f, 179.91f));
+	dynamicCar->setMass(500.f);
+	dynamicCar->setSolverIterationCounts(6, 1); // unity default
+	dynamicCar->setMaxDepenetrationVelocity(10); // unity default
 
 	dynamicCar->setLinearVelocity(physx::PxVec3(0.0f, 0.0f, 0.0f));
 	dynamicCar->setCMassLocalPose(physx::PxTransform(physx::PxVec3(0, -0.05f, 0.25f)));
 
 	dynamicCar->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, true);
+
+	fmt::println("Center of mass : {}    {}    {}", dynamicCar->getCMassLocalPose().p.x, dynamicCar->getCMassLocalPose().p.y, dynamicCar->getCMassLocalPose().p.z);
+	fmt::println("Space inertia : {}    {}    {}", dynamicCar->getMassSpaceInertiaTensor().x, dynamicCar->getMassSpaceInertiaTensor().y, dynamicCar->getMassSpaceInertiaTensor().z);
 
 	m_gScene->addActor(*dynamicCar);
 
@@ -130,12 +142,14 @@ void Map::InitPhysics()
     m_gDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
 
     physx::PxSceneDesc sceneDesc(m_gPhysics->getTolerancesScale());
-    sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f); 
+    sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
     sceneDesc.cpuDispatcher = m_gDispatcher;
+	sceneDesc.solverType = physx::PxSolverType::ePGS;
     sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
     m_gScene = m_gPhysics->createScene(sceneDesc);
 
     m_gMaterial = m_gPhysics->createMaterial(0.6f, 0.6f, 0.f); // Unity Default Params
+
 
 	fmt::print("    => ");
 	fmt::print(stderr, fg(fmt::color::green), "Physx Initialized\n");
@@ -223,7 +237,7 @@ void Map::UnserializeMap(std::string mapPath) {
 
 				bool status = PxCookTriangleMesh(physx::PxCookingParams(scale), meshDesc, writeBuffer, &result);
 				if (!status) {
-					printf("Failed to cook triangle mesh.\n");
+					fmt::println("Failed to cook triangle mesh.");
 				}
 
 				physx::PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
@@ -232,6 +246,8 @@ void Map::UnserializeMap(std::string mapPath) {
 				physx::PxRigidStatic* staticActor = m_gPhysics->createRigidStatic(physx::PxTransform(mesh->position, mesh->rotation));
 
 				physx::PxShape* shape = physx::PxRigidActorExt::createExclusiveShape(*staticActor, physx::PxTriangleMeshGeometry(triangleMesh), *m_gMaterial);
+				shape->setContactOffset(0.01f);
+				shape->setRestOffset(0.f);
 
 				m_gScene->addActor(*staticActor);
 			}
@@ -241,6 +257,8 @@ void Map::UnserializeMap(std::string mapPath) {
 
 void Map::Release()
 {
+	m_gScene->release();
+	m_gDispatcher->release();
 	m_gPhysics->release();
 	m_gFoundation->release();
 }

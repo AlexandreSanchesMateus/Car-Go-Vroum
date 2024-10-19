@@ -32,11 +32,10 @@ public:
 	float GetRearLeftWheelVelocity() const;
 	float GetRearRightWheelVelocity() const;
 
+	float GetCurrentTurnAngle() const;
+
 private:
 	bool UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictionTimeLine, const PlayerInput& inputs, float deltaTime);
-	float Clamp(float n, float lower, float upper) const;
-	float MoveTowards(float current, float target, float maxDelta) const;
-	physx::PxQuat AngleAxis(float degrees, physx::PxVec3 axis) const;
 
 	std::uint16_t m_playerIndex;
 
@@ -45,27 +44,9 @@ private:
 	WheelData m_rearLeftWheel;
 	WheelData m_rearRightWheel;
 
-	float m_restDistance;
-	float m_springStrenght;
-	float m_damping;
-
-	float m_tireMass;
 	Timeline m_frontTireFriction;
 	Timeline m_rearTireFriction;
-
-	float m_engineTorque;
 	Timeline m_virtualEngine;
-	float m_topSpeed;
-	float m_topReverseSpeed;
-	float m_breakForce;
-	float m_noInputFrictionForce;
-
-	float m_steeringSpeed;
-	float m_steeringAngle;
-
-	float m_recoverForce;
-	float m_timeBeforeFliping;
-	float m_flipingForce;
 
 	bool m_canFlip;
 	float m_currentTurnAngle;

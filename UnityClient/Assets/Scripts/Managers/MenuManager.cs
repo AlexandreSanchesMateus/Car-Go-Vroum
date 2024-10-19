@@ -191,10 +191,10 @@ public class MenuManager : MonoBehaviour
                                 readyTxt.text = "NOT READY";
                             else
                                 readyTxt.text = "READY";
-
-                            if (m_lobbySlots.TryGetValue(readyPacket.playerIndex, out LobbySlot other))
-                                other.ChangeReadyStatus(m_lastReadyStatus);
                         }
+
+                        if (m_lobbySlots.TryGetValue(readyPacket.playerIndex, out LobbySlot other))
+                            other.ChangeReadyStatus(m_lastReadyStatus);
                     }
                     else
                         Debug.LogWarning("Can't find disconnected player");

@@ -4,8 +4,6 @@
 
 void GameData::CheckGameStatus()
 {
-	return;
-
 	bool playerLeft = false;
 	bool allInfected = true;
 

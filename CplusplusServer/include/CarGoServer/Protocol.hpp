@@ -174,10 +174,12 @@ struct PlayersStatePacket
 	{
 		std::uint16_t playerIndex;
 		PlayerInput inputs;
+		float turnAngle;
+
 		physx::PxVec3 position;
 		physx::PxQuat rotation;
-		bool atRest;
 
+		bool atRest;
 		physx::PxVec3 linearVelocity;
 		physx::PxVec3 angularVelocity;
 
@@ -189,6 +191,7 @@ struct PlayersStatePacket
 
 	// Prediction / Reconciliation
 	//std::uint16_t inputIndex;
+	float localTurnAngle;
 	physx::PxVec3 localPosition;
 	physx::PxQuat localRotation;
 	bool localAtRest;
