@@ -358,7 +358,7 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 	case Opcode::C_PlayerInputs:
 	{
 		PlayerInputPacket playerInputs = PlayerInputPacket::Deserialize(message, offset);
-		player.lastInput = playerInputs.inputs;
+		player.inputBuffer.push(std::move(playerInputs));
 	}
 		break;
 	}
@@ -428,7 +428,9 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 			continue;
 
 		PlayersStatePacket::PlayerState playerState;
+		playerState.playerIndex = other.index;
 		playerState.inputs = other.lastInput;
+		playerState.turnAngle = other.car->GetCurrentTurnAngle();
 
 		playerState.position = other.car->GetPhysixActor().getGlobalPose().p;
 		playerState.rotation = other.car->GetPhysixActor().getGlobalPose().q;
@@ -437,7 +439,6 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 		playerState.angularVelocity = other.car->GetPhysixActor().getAngularVelocity();
 
 		playerState.atRest = playerState.linearVelocity.magnitude() <= 0.01f && playerState.angularVelocity.magnitude() <= 0.01f;
-
 		if (!playerState.atRest)
 		{
 			playerState.frontLeftWheelVelocity = other.car->GetFrontLeftWheelVelocity();
@@ -449,6 +450,7 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 		packet.otherPlayersState.push_back(playerState);
 	}
 
+	packet.inputIndex = targetPlayer.lastInputIndex;
 	packet.localTurnAngle = targetPlayer.car->GetCurrentTurnAngle();
 
 	packet.localPosition = targetPlayer.car->GetPhysixActor().getGlobalPose().p;
@@ -458,7 +460,6 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 	packet.localAngularVelocity = targetPlayer.car->GetPhysixActor().getAngularVelocity();
 
 	packet.localAtRest = packet.localLinearVelocity.magnitude() <= 0.01f && packet.localAngularVelocity.magnitude() <= 0.01f;
-
 	if (!packet.localAtRest)
 	{
 		packet.localFrontLeftWheelVelocity = targetPlayer.car->GetFrontLeftWheelVelocity();
@@ -477,6 +478,26 @@ void tick_physics(GameData& gameData, float deltaTime)
 
 	for (Player& player : gameData.players)
 	{
+		if (!player.inputBuffer.empty())
+		{
+			float interpIncrement = deltaTime / (TickDelay / 1000.0f);
+
+			if (player.inputBuffer.size() > InputBufferTargetSize)
+				interpIncrement *= 1.0f + (0.05f * (player.inputBuffer.size() - InputBufferTargetSize));
+			else
+				interpIncrement *= 1.0f - (0.05f * (InputBufferTargetSize - player.inputBuffer.size()));
+
+			player.inputBufferFactor += interpIncrement;
+
+			if (player.inputBufferFactor >= 1.0f)
+			{
+				auto& bufInput = player.inputBuffer.front();
+				player.lastInput = bufInput.inputs;
+				player.lastInputIndex = bufInput.inputIndex;
+				player.inputBuffer.pop();
+			}
+		}
+
 		if(player.car != nullptr)
 			player.car->UpdatePhysics(player.lastInput, deltaTime);
 	}

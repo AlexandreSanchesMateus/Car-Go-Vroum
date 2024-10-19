@@ -2,9 +2,11 @@
 
 #include "CarGoServer/ClientCar.hpp"
 #include "CarGoServer/PlayerInput.hpp"
+#include "CarGoServer/Protocol.hpp"
 #include <enet6/enet.h>
 #include <cstdint>
 #include <string>
+#include <queue>
 
 struct Player
 {
@@ -17,7 +19,11 @@ struct Player
 	std::uint8_t spawnSlotId;
 
 	std::shared_ptr<ClientCar> car = nullptr;
+
+	std::queue<PlayerInputPacket> inputBuffer;
+	float inputBufferFactor = 0.f;
 	PlayerInput lastInput;
+	std::uint16_t lastInputIndex;
 
 	bool IsPending() const;
 };

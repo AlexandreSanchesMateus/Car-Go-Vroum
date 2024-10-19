@@ -954,6 +954,7 @@ MonoBehaviour:
   speedTxt: {fileID: 863080084}
   infoTxt: {fileID: 367648517}
   counterTxt: {fileID: 753930914}
+  targetJitterBufferSize: 4
 --- !u!4 &861551859
 Transform:
   m_ObjectHideFlags: 0
@@ -1656,12 +1657,13 @@ GameObject:
   - component: {fileID: 1351849858}
   - component: {fileID: 1351849861}
   - component: {fileID: 1351849860}
-  m_Layer: 0
+  - component: {fileID: 1351849862}
+  m_Layer: 6
   m_Name: Plane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &1351849858
 Transform:
@@ -1728,6 +1730,28 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1351849857}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!64 &1351849862
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1351849857}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &1352034996
 GameObject:
   m_ObjectHideFlags: 0
@@ -1768,8 +1792,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1455659943}
-  - component: {fileID: 1455659942}
   - component: {fileID: 1455659941}
+  - component: {fileID: 1455659944}
+  - component: {fileID: 1455659942}
   - component: {fileID: 1455659940}
   m_Layer: 0
   m_Name: CinemachineBrain
@@ -1890,9 +1915,9 @@ MonoBehaviour:
   m_IgnoreTimeScale: 0
   m_WorldUpOverride: {fileID: 0}
   m_UpdateMethod: 2
-  m_BlendUpdateMethod: 1
+  m_BlendUpdateMethod: 0
   m_DefaultBlend:
-    m_Style: 1
+    m_Style: 0
     m_Time: 2
     m_CustomCurve:
       serializedVersion: 2
@@ -1922,6 +1947,14 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!81 &1455659944
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1455659939}
+  m_Enabled: 1
 --- !u!1 &1540749846
 GameObject:
   m_ObjectHideFlags: 0

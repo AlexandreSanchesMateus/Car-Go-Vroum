@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.Playables;
 using System.Runtime.CompilerServices;
+using UnityEngine.Windows;
 
 
 public class GameManager : MonoBehaviour
@@ -119,8 +120,32 @@ public class GameManager : MonoBehaviour
 
                 bool performReconciliation = false;
 
+                int count = 0;
+                PredictedInput predictedInput = null;
+                foreach (PredictedInput input in m_predictedState)
+                {
+                    if (input.inputIndex <= packet.inputIndex)
+                        ++count;
+
+                    if(input.inputIndex == packet.inputIndex)
+                    {
+                        predictedInput = input;
+                        break;
+                    }
+                }
+
+                if (predictedInput != null)
+                {
+                    // TODO
+
+                }
+
+                if(count > 0)
+                    m_predictedState.RemoveRange(0, count);
+
                 if (performReconciliation)
                 {
+                    // teleport
                     ownCarController.gameObject.transform.position = packet.localPhysicState.position;
                     ownCarController.gameObject.transform.rotation = packet.localPhysicState.rotation;
 

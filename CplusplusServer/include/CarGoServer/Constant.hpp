@@ -17,6 +17,8 @@ constexpr int MaxPlayerCount = 20;
 
 constexpr float InfectedPercentage = 0.25;
 
+constexpr int InputBufferTargetSize = 4;
+
 // en secondes
 constexpr float WaitAfterSurvivorMove = 3.f;
 constexpr float WaitAfterInfectedMove = 4.f;
