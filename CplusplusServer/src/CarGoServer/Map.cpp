@@ -51,7 +51,8 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 	else 
 		dynamicCar = m_gPhysics->createRigidDynamic(SurvivorSpawns[spawnSlotId]);
 
-	physx::PxFilterData filterData(1, 1, 0, 0);
+	physx::PxFilterData filterData(physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eNOTIFY_TOUCH_FOUND | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS, 
+		physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eNOTIFY_TOUCH_FOUND | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS, 0, 0);
 
 	physx::PxShape* boxShape1 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.95, 0.3, 2.75)), *m_gMaterial);
 	physx::PxShape* boxShape2 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.7, 0.245, 0.975)), *m_gMaterial);
@@ -158,11 +159,11 @@ void Map::InitPhysics()
     sceneDesc.cpuDispatcher = m_gDispatcher;
 	sceneDesc.solverType = physx::PxSolverType::ePGS;
     sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
-	//sceneDesc.filterCallback = &m_carSimulationFilter;
-	//sceneDesc.simulationEventCallback = &m_carSimulationCallback;
+	sceneDesc.filterCallback = &m_carSimulationFilter;
+	sceneDesc.simulationEventCallback = &m_carSimulationCallback;
     m_gScene = m_gPhysics->createScene(sceneDesc);
 
-	m_gScene->setSimulationEventCallback(&m_carSimulationCallback);
+	// m_gScene->setSimulationEventCallback(&m_carSimulationCallback);
 
     m_gMaterial = m_gPhysics->createMaterial(0.6f, 0.6f, 0.f); // Unity Default Params
 

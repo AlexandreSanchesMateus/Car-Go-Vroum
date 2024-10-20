@@ -31,9 +31,15 @@ public class GameManager : MonoBehaviour
     private TextMeshProUGUI infoTxt;
     [SerializeField, BoxGroup("UI")]
     private TextMeshProUGUI counterTxt;
+    [SerializeField, BoxGroup("UI")]
+    private TextMeshProUGUI survivorCountTxt;
+    [SerializeField, BoxGroup("UI")]
+    private TextMeshProUGUI infectedCountTxt;
 
     [SerializeField, BoxGroup("Network")]
     private int targetJitterBufferSize = 4;
+
+    private int m_survivorCount, m_infectedCount;
 
     private Player m_ownPlayer = null;
     private float m_gameDuration;
@@ -80,12 +86,14 @@ public class GameManager : MonoBehaviour
                 player.carController = ownCarController;
                 if (player.isInfected)
                 {
+                    ++m_infectedCount;
                     ownCarController.transform.position = infectedSpawn[player.slotId].position;
                     ownCarController.transform.rotation = infectedSpawn[player.slotId].rotation;
                     ownCarController.InitController(true);
                 }
                 else
                 {
+                    ++m_survivorCount;
                     ownCarController.transform.position = survivorSpawn[player.slotId].position;
                     ownCarController.transform.rotation = survivorSpawn[player.slotId].rotation;
                     ownCarController.InitController(false);
@@ -95,18 +103,23 @@ public class GameManager : MonoBehaviour
             {
                 if(player.isInfected)
                 {
+                    ++m_infectedCount;
                     GameObject car = Instantiate<GameObject>(clientCarPrefab, infectedSpawn[player.slotId].position, infectedSpawn[player.slotId].rotation);
                     player.carController = car.GetComponent<CarController>();
                     player.carController.InitController(true, player.Name);
                 }
                 else
                 {
+                    ++m_survivorCount;
                     GameObject car = Instantiate<GameObject>(clientCarPrefab, survivorSpawn[player.slotId].position, survivorSpawn[player.slotId].rotation);
                     player.carController = car.GetComponent<CarController>();
                     player.carController.InitController(false, player.Name);
                 }
             }
         }
+
+        survivorCountTxt.text = "SURVIVOR - " + m_survivorCount.ToString("D2");
+        infectedCountTxt.text = "INFECTED - " + m_infectedCount.ToString("D2");
     }
 
     private void Update()
@@ -323,6 +336,18 @@ public class GameManager : MonoBehaviour
                 {
                     PlayerDisconnectedPacket disconnectPacket = PlayerDisconnectedPacket.Deserialize(byteArray, ref offset);
                     Player targetPlayer = SCORef.GameData.players.Find((Player player) => { return player.Index == disconnectPacket.playerIndex; });
+
+                    if (targetPlayer.isInfected)
+                    {
+                        --m_infectedCount;
+                        infectedCountTxt.text = "INFECTED - " + m_infectedCount.ToString("D2");
+                    }
+                    else
+                    {
+                        --m_survivorCount;
+                        survivorCountTxt.text = "SURVIVOR - " + m_survivorCount.ToString("D2");
+                    }
+
                     if (targetPlayer != null)
                     {
                         Destroy(targetPlayer.carController.gameObject);
@@ -396,6 +421,11 @@ public class GameManager : MonoBehaviour
                     {
                         targetPlayer.isInfected = true;
                         targetPlayer.carController.SetInfectedModel();
+
+                        ++m_infectedCount;
+                        --m_survivorCount;
+                        infectedCountTxt.text = "INFECTED - " + m_infectedCount.ToString("D2");
+                        survivorCountTxt.text = "SURVIVOR - " + m_survivorCount.ToString("D2");
                     }
                     else
                         Debug.LogWarning("Can't find infected player");

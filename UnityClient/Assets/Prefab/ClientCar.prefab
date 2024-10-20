@@ -264,7 +264,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   carRb: {fileID: 7750060486585190319}
-  skidmarksController: {fileID: 0}
   bodyRenderer: {fileID: 4382647485230188265}
   redCarMat: {fileID: 2100000, guid: 8610974be3d7fe54ea3fda50105cd762, type: 2}
   blueCarMat: {fileID: 2100000, guid: 4cffd31fc279b6845b2a98d4aac1e2f8, type: 2}
@@ -527,6 +526,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48d15b59ed87c6441a0bc038c007be65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  initialDist: 15
 --- !u!1 &2829027329661590187
 GameObject:
   m_ObjectHideFlags: 0
