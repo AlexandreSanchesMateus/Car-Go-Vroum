@@ -2,8 +2,8 @@
 
 #include "CarGoServer/MapData.hpp"
 #include "CarGoServer/ClientCar.hpp"
+#include "CarGoServer/CarSimulationEventCallback.hpp"
 #include <physx/PxPhysicsAPI.h>
-#include <physx/cooking/PxCooking.h>
 #include <vector>
 #include <memory>
 
@@ -12,7 +12,8 @@ struct GameData;
 class Map
 {
 public:
-	Map();
+	Map(GameData& gameData);
+	Map() = delete;
 	~Map();
 
 	Map(const Map&) = delete;
@@ -35,11 +36,12 @@ public:
 private:
 	MapData m_mapData;
 
-	std::vector<std::shared_ptr<ClientCar>> clientCars;
+	std::vector<std::shared_ptr<ClientCar>> m_clientCars;
+	CarSimulationEventCallback m_carSimulationCallback;
 
 	physx::PxDefaultAllocator m_gAllocator;
 	physx::PxDefaultErrorCallback m_gErrorCallback;
-
+	
 	physx::PxFoundation* m_gFoundation = nullptr;
 	physx::PxPhysics* m_gPhysics = nullptr;
 	physx::PxDefaultCpuDispatcher* m_gDispatcher = nullptr;

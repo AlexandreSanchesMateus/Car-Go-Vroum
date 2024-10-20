@@ -21,7 +21,6 @@ struct Player
 	std::shared_ptr<ClientCar> car = nullptr;
 
 	std::queue<PlayerInputPacket> inputBuffer;
-	float inputBufferFactor = 0.f;
 	PlayerInput lastInput;
 	std::uint16_t lastInputIndex;
 

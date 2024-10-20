@@ -27,23 +27,29 @@ constexpr float GameDuration = 150.f;
 const std::string MapPath = "assets/Plane.json";
 
 const physx::PxTransform SurvivorSpawns[] = {
-	physx::PxTransform(physx::PxVec3(10,30,0), physx::PxQuat(0,0,0,1)),
-	physx::PxTransform(physx::PxVec3(10,30,20), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(-40.f, 2.f, -90.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-30.f, 2.f, -90.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-20.f, 2.f, -90.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-10.f, 2.f, -90.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(0.f, 2.f, -90.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-40.f, 2.f, -105.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-30.f, 2.f, -105.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-20.f, 2.f, -105.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-10.f, 2.f, -105.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(0.f, 2.f, -105.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-40.f, 2.f, -120.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-30.f, 2.f, -120.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-20.f, 2.f, -120.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-40.f, 2.f, -135.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
+	physx::PxTransform(physx::PxVec3(-30.f, 2.f, -135.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f))
 };
 
 const physx::PxTransform InfectedSpawns[] = {
-	physx::PxTransform(physx::PxVec3(-10,30,0), physx::PxQuat(0,0,0,1)),
-	physx::PxTransform(physx::PxVec3(-10,30,20), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
-	physx::PxTransform(physx::PxVec3(0,0,0), physx::PxQuat(0,0,0,0)),
+	physx::PxTransform(physx::PxVec3(40.f ,2.f , 90.f), physx::PxQuat(0.f, 1.f, 0.f, 0.f)),
+	physx::PxTransform(physx::PxVec3(30.f ,2.f , 90.f), physx::PxQuat(0.f, 1.f, 0.f, 0.f)),
+	physx::PxTransform(physx::PxVec3(20.f ,2.f , 90.f), physx::PxQuat(0.f, 1.f, 0.f, 0.f)),
+	physx::PxTransform(physx::PxVec3(10.f ,2.f , 90.f), physx::PxQuat(0.f, 1.f, 0.f, 0.f)),
+	physx::PxTransform(physx::PxVec3(0.f ,2.f , 90.f), physx::PxQuat(0.f, 1.f, 0.f, 0.f))
 };
 
 // Car params

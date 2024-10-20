@@ -1,14 +1,21 @@
 #include "CarGoServer/CarSimulationEventCallback.hpp"
+#include "CarGoServer/ClientCar.hpp"
 #include "CarGoServer/Protocol.hpp"
 
-CarSimulationEventCallback::CarSimulationEventCallback(GameData& gameData)
-    : m_gameData(gameData)
-{}
+CarSimulationEventCallback::CarSimulationEventCallback(GameData& gameData, Map& map) : m_gameData(gameData), m_map(map)
+{
+}
 
 void CarSimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
 {
-    physx::PxRigidActor* actor0 = static_cast<physx::PxRigidActor*>(pairHeader.actors[0]);
-    physx::PxRigidActor* actor1 = static_cast<physx::PxRigidActor*>(pairHeader.actors[1]);
+    /*physx::PxRigidActor* actor0 = static_cast<physx::PxRigidActor*>(pairHeader.actors[0]);
+    physx::PxRigidActor* actor1 = static_cast<physx::PxRigidActor*>(pairHeader.actors[1]);*/
+
+    physx::PxRigidDynamic* actor0 = pairHeader.actors[0]->is<physx::PxRigidDynamic>();
+    physx::PxRigidDynamic* actor1 = pairHeader.actors[1]->is<physx::PxRigidDynamic>();
+
+    if (actor0 == nullptr || actor1 == nullptr)
+        return;
 
     ClientCar* car0 = reinterpret_cast<ClientCar*>(actor0->userData);
     ClientCar* car1 = reinterpret_cast<ClientCar*>(actor1->userData);
@@ -42,7 +49,7 @@ void CarSimulationEventCallback::onContact(const physx::PxContactPairHeader& pai
                         enet_peer_send(player.peer, 0, playerInfectedPacket);
                 }
 
-                m_gameData.CheckGameStatus();
+                m_gameData.CheckGameStatus(m_map);
             }
         }
     }

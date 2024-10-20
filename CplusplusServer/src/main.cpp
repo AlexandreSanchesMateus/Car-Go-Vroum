@@ -3,6 +3,7 @@
 #include "CarGoServer/PlayerData.hpp"
 #include "CarGoServer/GameData.hpp"
 #include "CarGoServer/Command.hpp"
+#include "CarGoServer/Map.hpp"
 #include <fmt/core.h>
 #include <fmt/color.h>
 #include <enet6/enet.h>
@@ -12,13 +13,13 @@
 
 #include <CarGoServer/Math.hpp>
 
-void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, const Command& cmdPrompt);
+void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, Map& map, const Command& cmdPrompt);
 void PurgePlayers(const GameData& gameData);
 ENetPacket* build_game_data_packet(const GameData& gameData, const Player& targetPlayer);
 ENetPacket* build_running_state_packet(const GameData& gameData);
 ENetPacket* build_player_state_packet(const GameData& gameData, const Player& targetPlayer);
-void tick_physics(GameData& gameData, float deltaTime);
-void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt);
+void tick_physics(GameData& gameData, Map& map, float deltaTime);
+void tick_logic(GameData& gameData, Map& map, std::uint32_t now, const Command& cmdPrompt);
 
 int main()
 {
@@ -58,7 +59,10 @@ int main()
 
 	GameData gameData;
 	gameData.state = GameState::LOBBY;
+	gameData.lastGameInfectedWins = false;
 	gameData.waitingStateInit = false;
+
+	Map map(gameData);
 
 	fmt::println("< ======================================== >");
 	fmt::print(stderr, fg(fmt::color::medium_spring_green), "     ___ ___   _   _____   __\n");
@@ -99,6 +103,7 @@ int main()
 					Player& player = *it;
 					player.peer = event.peer;
 					player.ready = false;
+					player.isInfected = false;
 					player.name.clear();
 
 					cmdPrompt.ClearLastPrompt();
@@ -141,7 +146,7 @@ int main()
 
 						// Check game status
 						if (gameData.state != GameState::LOBBY)
-							gameData.CheckGameStatus();
+							gameData.CheckGameStatus(map);
 
 					}
 					else
@@ -167,7 +172,7 @@ int main()
 					std::vector<std::uint8_t> content(event.packet->dataLength);
 					std::memcpy(content.data(), event.packet->data, event.packet->dataLength);
 
-					handle_message(player, content, gameData, cmdPrompt);
+					handle_message(player, content, gameData, map, cmdPrompt);
 					enet_packet_destroy(event.packet);
 				}
 					break;
@@ -217,8 +222,8 @@ int main()
 		{
 			float deltaTime = (now - lastTick) / 1000.0f;
 
-			tick_logic(gameData, now, cmdPrompt);
-			tick_physics(gameData, deltaTime);
+			tick_logic(gameData, map, now, cmdPrompt);
+			tick_physics(gameData, map, deltaTime);
 
 			lastTick = now;
 			nextTick += TickDelay;
@@ -243,7 +248,7 @@ int main()
 	return EXIT_SUCCESS;
 }
 
-void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, const Command& cmdPrompt)
+void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, Map& map, const Command& cmdPrompt)
 {
 	std::size_t offset = 0;
 	Opcode opcode = static_cast<Opcode>(Deserialize_u8(message, offset));
@@ -322,10 +327,10 @@ void handle_message(Player& player, const std::vector<std::uint8_t>& message, Ga
 				cmdPrompt.ClearLastPrompt();
 				PurgePlayers(gameData);
 				fmt::println("----------------- GAME STARTED -----------------");
-				cmdPrompt.RecoverLastPrompt();
 
 				// init world
-				gameData.map.InitPlayers(gameData);
+				map.InitPlayers(gameData);
+				cmdPrompt.RecoverLastPrompt();
 
 				gameData.state = GameState::WAITING_GAME_START;
 				gameData.timer = enet_time_get();
@@ -471,7 +476,7 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 	return build_packet<PlayersStatePacket>(packet, 0);
 }
 
-void tick_physics(GameData& gameData, float deltaTime)
+void tick_physics(GameData& gameData, Map& map, float deltaTime)
 {
 	if (gameData.state == GameState::LOBBY)
 		return;
@@ -480,29 +485,17 @@ void tick_physics(GameData& gameData, float deltaTime)
 	{
 		if (!player.inputBuffer.empty())
 		{
-			float interpIncrement = deltaTime / (TickDelay / 1000.0f);
-
-			if (player.inputBuffer.size() > InputBufferTargetSize)
-				interpIncrement *= 1.0f + (0.05f * (player.inputBuffer.size() - InputBufferTargetSize));
-			else
-				interpIncrement *= 1.0f - (0.05f * (InputBufferTargetSize - player.inputBuffer.size()));
-
-			player.inputBufferFactor += interpIncrement;
-
-			if (player.inputBufferFactor >= 1.0f)
-			{
-				auto& bufInput = player.inputBuffer.front();
-				player.lastInput = bufInput.inputs;
-				player.lastInputIndex = bufInput.inputIndex;
-				player.inputBuffer.pop();
-			}
+			PlayerInputPacket& bufInput = player.inputBuffer.front();
+			player.lastInput = bufInput.inputs;
+			player.lastInputIndex = bufInput.inputIndex;
+			player.inputBuffer.pop();
 		}
 
 		if(player.car != nullptr)
 			player.car->UpdatePhysics(player.lastInput, deltaTime);
 	}
 
-	gameData.map.SimulatePhysics(deltaTime);
+	map.SimulatePhysics(deltaTime);
 
 	for (const Player& player : gameData.players)
 	{
@@ -514,7 +507,7 @@ void tick_physics(GameData& gameData, float deltaTime)
 	}
 }
 
-void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt)
+void tick_logic(GameData& gameData, Map& map, std::uint32_t now, const Command& cmdPrompt)
 {
 	switch (gameData.state)
 	{
@@ -610,7 +603,14 @@ void tick_logic(GameData& gameData, std::uint32_t now, const Command& cmdPrompt)
 			fmt::println("SURVIVORS WINS");
 		cmdPrompt.RecoverLastPrompt();
 
-		gameData.map.Clear(gameData);
+		map.Clear(gameData);
+
+		for (Player& player : gameData.players)
+		{
+			player.isInfected = false;
+			player.ready = false;
+		}
+
 		gameData.waitingStateInit = false;
 		gameData.state = GameState::LOBBY;
 	}

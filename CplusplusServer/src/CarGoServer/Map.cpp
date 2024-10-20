@@ -8,11 +8,11 @@
 #include <fmt/core.h>
 #include <fmt/color.h>
 
-Map::Map()
+Map::Map(GameData& gameData) : m_carSimulationCallback(gameData, *this)
 {
+	std::srand(std::time(nullptr));
 	fmt::println("Initialize map ...");
     InitPhysics();
-	std::srand(std::time(nullptr));
 }
 
 Map::~Map()
@@ -34,12 +34,12 @@ void Map::Clear(GameData& gameData)
 		player.car = nullptr;
 	}
 
-	for (const std::shared_ptr<ClientCar>& car : clientCars)
+	for (const std::shared_ptr<ClientCar>& car : m_clientCars)
 	{
 		m_gScene->removeActor(car->GetPhysixActor(), false);
 	}
 
-	clientCars.clear();
+	m_clientCars.clear();
 }
 
 physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfected)
@@ -93,17 +93,23 @@ void Map::InitPlayers(GameData& gameData)
 	}
 
 	// From id list, take x id and set to infected
-	int nbInfected = round(playersId.size() * InfectedPercentage);
+	int nbInfected = ceil(playersId.size() * InfectedPercentage);
+	fmt::print(stderr, fg(fmt::color::yellow), "INFO :");
+	fmt::println(" {} infected in the game", nbInfected);
 	for (int i = 0; i < nbInfected; ++i)
 	{
 		std::vector<std::uint16_t>::iterator it = playersId.begin();
 		int index = std::rand() % playersId.size();
 		std::advance(it, index);
 
+		fmt::println("Player infected index : {} => {}", index, *it);
+
 		auto playerIt = std::find_if(gameData.players.begin(), gameData.players.end(), [&](const Player& player) {return player.index == *it; });
 		if (playerIt != gameData.players.end())
 		{
 			playerIt->isInfected = true;
+			fmt::println("Player found, name : {} => {}", playerIt->name, playerIt->isInfected);
+
 			playersId.erase(it);
 		}
 	}
@@ -121,12 +127,12 @@ void Map::InitPlayers(GameData& gameData)
 			player.spawnSlotId = survivorCount++;
 
 		std::shared_ptr<ClientCar> carController = std::make_shared<ClientCar>(ClientCar(player.index, CreateRigidCar(player.spawnSlotId, player.isInfected), m_gScene, m_gPhysics));
-		clientCars.emplace_back(carController);
+		m_clientCars.emplace_back(carController);
 		player.car = carController;
 	}
 }
 
-void Map::InitPhysics() 
+void Map::InitPhysics()
 {
     m_gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_gAllocator, m_gErrorCallback);
 
@@ -145,8 +151,9 @@ void Map::InitPhysics()
     sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
     m_gScene = m_gPhysics->createScene(sceneDesc);
 
-    m_gMaterial = m_gPhysics->createMaterial(0.6f, 0.6f, 0.f); // Unity Default Params
+	m_gScene->setSimulationEventCallback(&m_carSimulationCallback);
 
+    m_gMaterial = m_gPhysics->createMaterial(0.6f, 0.6f, 0.f); // Unity Default Params
 
 	fmt::print("    => ");
 	fmt::print(stderr, fg(fmt::color::green), "Physx Initialized\n");

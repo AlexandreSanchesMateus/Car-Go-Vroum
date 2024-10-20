@@ -334,7 +334,7 @@ void GameStateRunningPacket::Serialize(std::vector<std::uint8_t>& byteArray) con
 	for (const GameStateRunningPacket::RunningPacketData& data : playerList)
 	{
 		Serialize_u16(byteArray, data.playerIndex);
-		std::uint8_t byte = ((data.isInfected ? 1 : 0) << 8) | data.slotId;
+		std::uint8_t byte = ((data.isInfected ? 1 : 0) << 7) | data.slotId;
 		Serialize_u8(byteArray, byte);
 	}
 }

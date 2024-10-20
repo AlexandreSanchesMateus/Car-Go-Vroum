@@ -459,6 +459,7 @@ namespace NetworkProtocol
                 player.inputs = PlayerInput.Deserialize(byteArray, ref offset);
                 player.turnAngle = Serializer.Deserialize_float(byteArray, ref offset);
 
+                player.physicState = new PhysicState();
                 player.physicState.position.x = Serializer.Deserialize_float(byteArray, ref offset);
                 player.physicState.position.y = Serializer.Deserialize_float(byteArray, ref offset);
                 player.physicState.position.z = Serializer.Deserialize_float(byteArray, ref offset);

@@ -50,6 +50,20 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
+        /*int count = 0;
+        foreach(Transform trs in infectedSpawn)
+        {
+            Debug.Log("INFECTED " + count + " -> position : " + trs.position + "    rotation : " + trs.rotation);
+            ++count;
+        }
+
+        count = 0;
+        foreach (Transform trs in survivorSpawn)
+        {
+            Debug.Log("SURVIVOR " + count + " -> position : " + trs.position + "    rotation : " + trs.rotation);
+            ++count;
+        }*/
+
         // Manually simutale physics
         Physics.simulationMode = SimulationMode.Script;
 
@@ -60,8 +74,12 @@ public class GameManager : MonoBehaviour
 
         foreach (Player player in SCORef.GameData.players)
         {
+            Debug.Log(player.Name + " is infected : " + player.isInfected);
+
             if (player.Index == SCORef.GameData.ownPlayerIndex)
             {
+                Debug.Log("OwnPlayer");
+
                 player.carController = ownCarController;
                 if (player.isInfected)
                 {
@@ -143,7 +161,7 @@ public class GameManager : MonoBehaviour
                 if(count > 0)
                     m_predictedState.RemoveRange(0, count);
 
-                if (performReconciliation)
+                //if (performReconciliation)
                 {
                     // teleport
                     ownCarController.gameObject.transform.position = packet.localPhysicState.position;
@@ -153,6 +171,11 @@ public class GameManager : MonoBehaviour
                     {
                         ownCarController.CarRb.velocity = Vector3.zero;
                         ownCarController.CarRb.angularVelocity = Vector3.zero;
+
+                        ownCarController.FrontLeftWheelVelocity = 0f;
+                        ownCarController.FrontRightWheelVelocity = 0f;
+                        ownCarController.RearLeftWheelVelocity = 0f;
+                        ownCarController.RearRightWheelVelocity = 0f;
                     }
                     else
                     {
@@ -163,6 +186,32 @@ public class GameManager : MonoBehaviour
                         ownCarController.FrontRightWheelVelocity = packet.localPhysicState.frontRightWheelVelocity;
                         ownCarController.RearLeftWheelVelocity = packet.localPhysicState.rearLeftWheelVelocity;
                         ownCarController.RearRightWheelVelocity = packet.localPhysicState.rearRightWheelVelocity;
+                    }
+
+                    foreach(PlayersStatePacket.PlayerState playerState in packet.otherPlayerState)
+                    {
+                        Player player = SCORef.GameData.players.Find((Player other) => { return other.Index == playerState.playerIndex; });
+                        if (player != null)
+                        {
+                            player.carController.transform.position = playerState.physicState.position;
+                            player.carController.transform.rotation = playerState.physicState.rotation;
+
+                            if (playerState.atRest)
+                            {
+                                player.carController.CarRb.velocity = Vector3.zero;
+                                player.carController.CarRb.angularVelocity = Vector3.zero;
+                            }
+                            else
+                            {
+                                player.carController.CarRb.velocity = playerState.physicState.linearVelocity;
+                                player.carController.CarRb.angularVelocity = playerState.physicState.angularVelocity;
+
+                                player.carController.FrontLeftWheelVelocity = playerState.physicState.frontLeftWheelVelocity;
+                                player.carController.FrontRightWheelVelocity = playerState.physicState.frontRightWheelVelocity;
+                                player.carController.RearLeftWheelVelocity = playerState.physicState.rearLeftWheelVelocity;
+                                player.carController.RearRightWheelVelocity = playerState.physicState.rearRightWheelVelocity;
+                            }
+                        }
                     }
                 }
 
@@ -177,13 +226,13 @@ public class GameManager : MonoBehaviour
             return;
 
         // update simulation
-        foreach (Player player in SCORef.GameData.players)
+        /*foreach (Player player in SCORef.GameData.players)
         {
             if (player.carController != null)
                 player.carController.UpdatePhysics();
         }
 
-        Physics.Simulate(Time.fixedDeltaTime);
+        Physics.Simulate(Time.fixedDeltaTime);*/
 
         if (inputManager != null && SCORef != null && SCORef.Network != null)
         {

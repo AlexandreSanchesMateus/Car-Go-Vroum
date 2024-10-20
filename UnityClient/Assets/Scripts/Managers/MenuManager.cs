@@ -194,31 +194,33 @@ public class MenuManager : MonoBehaviour
                         }
 
                         if (m_lobbySlots.TryGetValue(readyPacket.playerIndex, out LobbySlot other))
-                            other.ChangeReadyStatus(m_lastReadyStatus);
+                            other.ChangeReadyStatus(player.ready);
                     }
                     else
-                        Debug.LogWarning("Can't find disconnected player");
-
+                        Debug.LogWarning("Can't find ready player");
                 }
                 break;
 
             case EOpcode.S_RunningState:
-                GameStateRunningPacket gameStateRunningPacket = GameStateRunningPacket.Deserialize(byteArray, ref offset);
-
-                foreach(GameStateRunningPacket.RunningPacketData other in gameStateRunningPacket.playerList)
                 {
-                    Player player = SCORef.GameData.players.Find((Player player) => { return player.Index == other.playerIndex; });
-                    if(player != null)
-                    {
-                        player.isInfected = other.isInfected;
-                        player.slotId = other.slotId;
-                    }
-                    else
-                        Debug.LogWarning("Can't find player for running state");
-                }
 
-                // Load game scene
-                SceneManager.LoadScene(1);
+                    GameStateRunningPacket gameStateRunningPacket = GameStateRunningPacket.Deserialize(byteArray, ref offset);
+
+                    foreach (GameStateRunningPacket.RunningPacketData other in gameStateRunningPacket.playerList)
+                    {
+                        Player player = SCORef.GameData.players.Find((Player player) => { return player.Index == other.playerIndex; });
+                        if (player != null)
+                        {
+                            player.isInfected = other.isInfected;
+                            player.slotId = other.slotId;
+                        }
+                        else
+                            Debug.LogWarning("Can't find player for running state");
+                    }
+
+                    // Load game scene
+                    SceneManager.LoadScene(1);
+                }
                 break;
         }
     }
