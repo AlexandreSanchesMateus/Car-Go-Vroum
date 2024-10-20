@@ -3,6 +3,7 @@
 #include "CarGoServer/MapData.hpp"
 #include "CarGoServer/ClientCar.hpp"
 #include "CarGoServer/CarSimulationEventCallback.hpp"
+#include "CarGoServer/CarSimulationFilterCallback.hpp"
 #include <physx/PxPhysicsAPI.h>
 #include <vector>
 #include <memory>
@@ -38,6 +39,7 @@ private:
 
 	std::vector<std::shared_ptr<ClientCar>> m_clientCars;
 	CarSimulationEventCallback m_carSimulationCallback;
+	CarSimulationFilterCallback m_carSimulationFilter;
 
 	physx::PxDefaultAllocator m_gAllocator;
 	physx::PxDefaultErrorCallback m_gErrorCallback;

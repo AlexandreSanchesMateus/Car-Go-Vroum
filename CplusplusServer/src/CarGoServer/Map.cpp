@@ -51,14 +51,27 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 	else 
 		dynamicCar = m_gPhysics->createRigidDynamic(SurvivorSpawns[spawnSlotId]);
 
+	physx::PxFilterData filterData(1, 1, 0, 0);
+
 	physx::PxShape* boxShape1 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.95, 0.3, 2.75)), *m_gMaterial);
 	physx::PxShape* boxShape2 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.7, 0.245, 0.975)), *m_gMaterial);
 	boxShape2->setLocalPose(physx::PxTransform(physx::PxVec3(0.0, 0.5, 0.0)));
 
 	boxShape1->setContactOffset(0.01f); // unity default
 	boxShape1->setRestOffset(0.f); // unity default
+
+	// Enable contact callback
+	boxShape1->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
+	boxShape1->setFlag(physx::PxShapeFlag::eSCENE_QUERY_SHAPE, true);
+	boxShape1->setSimulationFilterData(filterData);
+
 	boxShape2->setContactOffset(0.01f); // unity default
 	boxShape2->setRestOffset(0.f); // unity default
+
+	// Enable contact callback
+	boxShape2->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
+	boxShape2->setFlag(physx::PxShapeFlag::eSCENE_QUERY_SHAPE, true);
+	boxShape2->setSimulationFilterData(filterData);
 
 	dynamicCar->attachShape(*boxShape1);
 	dynamicCar->attachShape(*boxShape2);
@@ -134,7 +147,7 @@ void Map::InitPlayers(GameData& gameData)
 
 void Map::InitPhysics()
 {
-    m_gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_gAllocator, m_gErrorCallback);
+	m_gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_gAllocator, m_gErrorCallback);
 
     m_gPvd = physx::PxCreatePvd(*m_gFoundation);
     physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
@@ -149,6 +162,8 @@ void Map::InitPhysics()
     sceneDesc.cpuDispatcher = m_gDispatcher;
 	sceneDesc.solverType = physx::PxSolverType::ePGS;
     sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
+	//sceneDesc.filterCallback = &m_carSimulationFilter;
+	//sceneDesc.simulationEventCallback = &m_carSimulationCallback;
     m_gScene = m_gPhysics->createScene(sceneDesc);
 
 	m_gScene->setSimulationEventCallback(&m_carSimulationCallback);

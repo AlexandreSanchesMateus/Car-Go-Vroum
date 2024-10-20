@@ -2,12 +2,28 @@
 #include "CarGoServer/ClientCar.hpp"
 #include "CarGoServer/Protocol.hpp"
 
-CarSimulationEventCallback::CarSimulationEventCallback(GameData& gameData, Map& map) : m_gameData(gameData), m_map(map)
+#include <fmt/core.h>
+
+CarSimulationEventCallback::CarSimulationEventCallback(GameData& gameData, Map& map) : PxSimulationEventCallback(), m_gameData(gameData), m_map(map)
+{
+}
+
+void CarSimulationEventCallback::onConstraintBreak(physx::PxConstraintInfo*, physx::PxU32)
+{
+}
+
+void CarSimulationEventCallback::onWake(physx::PxActor**, physx::PxU32)
+{
+}
+
+void CarSimulationEventCallback::onSleep(physx::PxActor**, physx::PxU32)
 {
 }
 
 void CarSimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
 {
+    fmt::println("Collision Detected");
+
     /*physx::PxRigidActor* actor0 = static_cast<physx::PxRigidActor*>(pairHeader.actors[0]);
     physx::PxRigidActor* actor1 = static_cast<physx::PxRigidActor*>(pairHeader.actors[1]);*/
 
@@ -53,4 +69,12 @@ void CarSimulationEventCallback::onContact(const physx::PxContactPairHeader& pai
             }
         }
     }
+}
+
+void CarSimulationEventCallback::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count)
+{
+}
+
+void CarSimulationEventCallback::onAdvance(const physx::PxRigidBody* const*, const physx::PxTransform*, const physx::PxU32)
+{
 }

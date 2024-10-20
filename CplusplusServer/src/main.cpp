@@ -527,7 +527,7 @@ void tick_logic(GameData& gameData, Map& map, std::uint32_t now, const Command& 
 				moveStatePacket.moveInfected = false;
 				gameData.waitingStateInit = true;
 				gameData.timer = now;
-				gameData.endTimer = gameData.timer + WaitAfterInfectedMove * 1000;
+				gameData.endTimer = gameData.timer + WaitAfterSurvivorMove * 1000;
 
 				ENetPacket* enetPacket = build_packet<GameStateStartMovePacket>(moveStatePacket, ENET_PACKET_FLAG_RELIABLE);
 				for (std::vector<Player>::const_iterator it = gameData.players.begin(); it != gameData.players.end(); ++it)
