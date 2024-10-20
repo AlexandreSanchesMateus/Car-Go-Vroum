@@ -6,8 +6,8 @@ using UnityEngine;
 public class PredictedInput
 {
     public UInt16 inputIndex;
-    public PlayerInput localInput;
+    public PlayerInput localInput = new PlayerInput();
 
     public PhysicState physicState = new PhysicState();
-    public List<PhysicState> others = new List<PhysicState>();
+    public Dictionary<int, PhysicState> others = new Dictionary<int, PhysicState>();
 }

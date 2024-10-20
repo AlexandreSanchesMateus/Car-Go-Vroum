@@ -83,10 +83,6 @@ public class CarController : MonoBehaviour
 
     public Rigidbody CarRb { get { return carRb; } }
 
-    // Input variable
-    public float AccelerationInput { get; set; } = 0f;
-    public bool NeedToBrake { get; set; } = false;
-
     public int ShowSpeed { get; private set; }
 
     private float m_desireTurnAngle;
@@ -97,6 +93,9 @@ public class CarController : MonoBehaviour
     private float m_rearWheelDistance;
 
     private Skidmarks m_skidmarksController;
+    private PlayerInput m_carInput = new PlayerInput();
+
+    private bool m_fligging;
 
 
     private void Start()
@@ -171,7 +170,7 @@ public class CarController : MonoBehaviour
         // No input ground friction
         if (isFullyGrounded)
         {
-            if (AccelerationInput == 0f)
+            if (m_carInput.acceleration == 0f)
             {
                 carRb.centerOfMass = new Vector3(0, -0.05f, 0.25f);
 
@@ -181,12 +180,14 @@ public class CarController : MonoBehaviour
             else
                 carRb.centerOfMass = new Vector3(0, -0.05f, -0.04f);
         }
-        else
+        else if(!m_fligging && m_carInput.softRecover)
         {
             if(Vector3.Dot(transform.up, Vector3.up) < 0.6f && carRb.velocity.magnitude < 0.05f)
-                m_canFlip = true;
-            else
-                m_canFlip = false;
+            {
+                m_fligging = true;
+                carRb.AddForce(Vector3.up * recoverForce, ForceMode.VelocityChange);
+                StartCoroutine(FlipCar());
+            }
         }
     }
 
@@ -203,7 +204,7 @@ public class CarController : MonoBehaviour
             // ---------------------- Forward Force (acceleration / break) ----------------------
             float carSpeed = Vector3.Dot(transform.forward, carRb.velocity);
 
-            if (NeedToBrake)
+            if (m_carInput.brake)
             {
                 if (carSpeed < -0.1f)
                 {
@@ -223,7 +224,7 @@ public class CarController : MonoBehaviour
             }
             else
             {
-                if (AccelerationInput > 0f)
+                if (m_carInput.acceleration > 0f)
                 {
                     float normelizeSpeed = Mathf.Clamp01(Mathf.Abs(carSpeed) / topSpeed);
 
@@ -236,11 +237,11 @@ public class CarController : MonoBehaviour
                     else if (normelizeSpeed < 1f && driveWheel)
                     {
                         // Move forward
-                        float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * AccelerationInput * engineTorque;
+                        float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_carInput.acceleration * engineTorque;
                         physicForce = wheelPos.forward * availableTorque;
                     }
                 }
-                else if (AccelerationInput < 0f)
+                else if (m_carInput.acceleration < 0f)
                 {
                     float normelizeSpeed = Mathf.Clamp01(Mathf.Abs(carSpeed) / topReverseSpeed);
 
@@ -253,7 +254,7 @@ public class CarController : MonoBehaviour
                     else if (normelizeSpeed < 1f && driveWheel)
                     {
                         // Move backward
-                        float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * AccelerationInput * engineTorque * 0.8f;
+                        float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_carInput.acceleration * engineTorque * 0.8f;
                         physicForce = wheelPos.forward * availableTorque;
                     }
                 }  
@@ -299,9 +300,15 @@ public class CarController : MonoBehaviour
         }
     }
 
-    public void SetDesireTurnAngle(float normalValue)
+    /*public void SetDesireTurnAngle(float normalValue)
     {
         m_desireTurnAngle = normalValue * steeringAngle;
+    }*/
+
+    public void SetCarInput(PlayerInput newInput)
+    {
+        m_carInput = newInput;
+        m_desireTurnAngle = newInput.steer * steeringAngle;
     }
 
     public void SetTurnAngle(float angle, float normalDesireAngle)
@@ -309,20 +316,25 @@ public class CarController : MonoBehaviour
         m_currentTurnAngle = angle;
     }
 
-    public void SoftRecover()
+    /*public void SoftRecover()
     {
         if (m_canFlip)
         {
             carRb.AddForce(Vector3.up * recoverForce, ForceMode.VelocityChange);
             StartCoroutine(FlipCar());
         }
-    }
+    }*/
 
     private IEnumerator FlipCar()
     {
         yield return new WaitForSeconds(timeBeforeFliping);
 
-        float timer = 0f;
+        carRb.angularVelocity = Vector3.zero;
+        Vector3 euler = carRb.rotation.eulerAngles;
+        transform.rotation = Quaternion.Euler(euler.x, euler.y, 0f);
+        m_fligging = false;
+
+        /*float timer = 0f;
         float angle = Vector3.SignedAngle(transform.up, Vector3.up, transform.forward);
 
         bool startLeft = angle < 0f;
@@ -341,7 +353,7 @@ public class CarController : MonoBehaviour
             yield return null;
         }
 
-        carRb.angularVelocity = new Vector3(0, 0, 0);
+        carRb.angularVelocity = new Vector3(0, 0, 0);*/
     }
 
     public void InitController(bool infected, string name = "")

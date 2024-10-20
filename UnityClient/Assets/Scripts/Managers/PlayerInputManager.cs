@@ -74,41 +74,42 @@ public class PlayerInputManager : MonoBehaviour
     {
         int acceleration = (int)context.ReadValue<float>();
         m_lastInput.acceleration = acceleration;
-        carController.AccelerationInput = acceleration;
+
+        ApplyInput();
     }
 
     public void OnCarTurn(InputAction.CallbackContext context)
     {
         int turn = (int)context.ReadValue<float>();
         m_lastInput.steer = turn;
-        carController.SetDesireTurnAngle(turn);
+
+        ApplyInput();
     }
 
     public void OnCarBrake(InputAction.CallbackContext context)
     {
         if (context.phase == InputActionPhase.Performed)
-        {
             m_lastInput.brake = true;
-            carController.NeedToBrake = true;
-        }
         else
-        {
             m_lastInput.brake = false;
-            carController.NeedToBrake = false;
-        }
+
+        ApplyInput();
     }
 
     public void OnCarRecover(InputAction.CallbackContext context)
     {
         if(context.phase == InputActionPhase.Performed)
-        {
             m_lastInput.softRecover = true;
-            carController.SoftRecover();
-        }
         else
             m_lastInput.softRecover = false;
+
+        ApplyInput();
     }
 
+    public void ApplyInput()
+    {
+        carController.SetCarInput(m_lastInput);
+    }
 
     // Car Look
     public void OnLookBack(InputAction.CallbackContext context)

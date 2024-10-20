@@ -107,23 +107,24 @@ void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 		if (up.dot(linearVelocity) < 0.6f && linearVelocity.magnitude() < 0.05f)
 		{
 			m_actor->addForce(physx::PxVec3(0.f, 1.f, 0.f) * RecoverForce, physx::PxForceMode::eVELOCITY_CHANGE);
-
-			//m_fligging = true;
+			m_fligging = true;
 			m_flipTimer = 0.f;
 		}
 	}
 
-	/*if (m_fligging)
+	if (m_fligging)
 	{
 		m_flipTimer += deltaTime;
 		if (m_flipTimer >= TimeBeforeFliping)
 		{
-			physx::PxVec3 forward = m_actor->getGlobalPose().q.rotate(physx::PxVec3(0.0f, 0.0f, 1.0f));
-			m_actor->getGlobalPose().q.getAngle(AngleAxis())
+			/*physx::PxTransform carFlip;
+			carFlip.p = m_actor->getGlobalPose().p;
+			carFlip.q = AngleAxis()
 
-			m_actor->addTorque(physx::PxVec3(0.f, 0.f, angle / 180.f ) * FlipingForce, physx::PxForceMode::eVELOCITY_CHANGE);
+			m_actor->setGlobalPose(carFlip);*/
+			m_fligging = false;
 		}
-	}*/
+	}
 
 	//fmt::println("speed : {}", (int)(std::abs(forward.dot(m_actor->getLinearVelocity()) * 3.6f)));
 }

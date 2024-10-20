@@ -929,6 +929,7 @@ MonoBehaviour:
   clientCarPrefab: {fileID: 1602884798520950930, guid: 03051fc852ac19d4194e587e670fb0df,
     type: 3}
   ownCarController: {fileID: 3054399399770519445}
+  cineBrain: {fileID: 1455659942}
   infectedSpawn:
   - {fileID: 93201777}
   - {fileID: 1352034997}
@@ -987,7 +988,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &863080083
 RectTransform:
   m_ObjectHideFlags: 0

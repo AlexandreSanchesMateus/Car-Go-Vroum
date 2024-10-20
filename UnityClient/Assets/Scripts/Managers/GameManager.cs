@@ -6,9 +6,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
-using UnityEngine.Playables;
-using System.Runtime.CompilerServices;
-using UnityEngine.Windows;
 
 
 public class GameManager : MonoBehaviour
@@ -136,7 +133,7 @@ public class GameManager : MonoBehaviour
                 // traite le dernier packet
                 PlayersStatePacket packet = m_jitterBuffer.Dequeue();
 
-                bool performReconciliation = false;
+                //bool performReconciliation = false;
 
                 int count = 0;
                 PredictedInput predictedInput = null;
@@ -155,13 +152,26 @@ public class GameManager : MonoBehaviour
                 if (predictedInput != null)
                 {
                     // TODO
+                    /*if (DoesNeedReconciliation(predictedInput.physicState, packet.localPhysicState))
+                        performReconciliation = true;
 
+                    if (!performReconciliation)
+                    {
+                        foreach(PlayersStatePacket.PlayerState b in packet.otherPlayerState)
+                        {
+                            if(predictedInput.others.TryGetValue(b.playerIndex, out PhysicState state) && DoesNeedReconciliation(state, b.physicState))
+                            {
+                                performReconciliation = true;
+                                break;
+                            }
+                        }
+                    }*/
                 }
 
                 if(count > 0)
                     m_predictedState.RemoveRange(0, count);
 
-                //if (performReconciliation)
+                // if (performReconciliation)
                 {
                     // teleport
                     ownCarController.gameObject.transform.position = packet.localPhysicState.position;
@@ -213,6 +223,27 @@ public class GameManager : MonoBehaviour
                             }
                         }
                     }
+
+                    /*for (int i = 0; i < m_predictedState.Count; i++)
+                    {
+                        foreach (Player player in SCORef.GameData.players)
+                        {
+                            if (player.carController == null)
+                                continue;
+
+                            if (player.Index == SCORef.GameData.ownPlayerIndex)
+                                player.carController.SetCarInput(m_predictedState[i].localInput);
+                            else
+                            {
+                                PlayersStatePacket.PlayerState playerState = packet.otherPlayerState.Find((PlayersStatePacket.PlayerState state) => { return state.playerIndex == player.Index; });
+                                player.carController.SetCarInput(playerState.inputs);
+                            }
+
+                            player.carController.UpdatePhysics();
+                        }
+
+                        Physics.Simulate(Time.fixedDeltaTime);
+                    }*/
                 }
 
                 m_jitterFactor -= 1.0f;
@@ -273,8 +304,10 @@ public class GameManager : MonoBehaviour
                 otherState.rearLeftWheelVelocity = player.carController.RearLeftWheelVelocity;
                 otherState.rearRightWheelVelocity = player.carController.RearRightWheelVelocity;
 
-                predictedInput.others.Add(otherState);
+                predictedInput.others.Add(player.Index, otherState);
             }
+
+            m_predictedState.Add(predictedInput);
         }
     }
 
@@ -377,6 +410,23 @@ public class GameManager : MonoBehaviour
         SCORef.GameData.ownPlayerIndex = -1;
 
         SceneManager.LoadScene(0);
+    }
+
+    private bool DoesNeedReconciliation(PhysicState predictedState, PhysicState serverState)
+    {
+        if ((predictedState.position - serverState.position).magnitude > 0.1f)
+            return true;
+
+        if ((predictedState.rotation.eulerAngles - serverState.rotation.eulerAngles).magnitude > 0.1f)
+            return true;
+
+        if ((predictedState.linearVelocity - serverState.linearVelocity).magnitude > 0.1f)
+            return true;
+
+        if ((predictedState.angularVelocity - serverState.angularVelocity).magnitude > 0.1f)
+            return true;
+
+        return false;
     }
 
     private IEnumerator InitCountDown()

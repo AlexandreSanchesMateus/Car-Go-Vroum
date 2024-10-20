@@ -115,14 +115,10 @@ void Map::InitPlayers(GameData& gameData)
 		int index = std::rand() % playersId.size();
 		std::advance(it, index);
 
-		fmt::println("Player infected index : {} => {}", index, *it);
-
 		auto playerIt = std::find_if(gameData.players.begin(), gameData.players.end(), [&](const Player& player) {return player.index == *it; });
 		if (playerIt != gameData.players.end())
 		{
 			playerIt->isInfected = true;
-			fmt::println("Player found, name : {} => {}", playerIt->name, playerIt->isInfected);
-
 			playersId.erase(it);
 		}
 	}
