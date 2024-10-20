@@ -24,7 +24,7 @@ constexpr float WaitAfterSurvivorMove = 3.f;
 constexpr float WaitAfterInfectedMove = 4.f;
 constexpr float GameDuration = 150.f;
 
-const std::string MapPath = "assets/Plane.json";
+const std::string MapPath = "assets/Game.json";
 
 const physx::PxTransform SurvivorSpawns[] = {
 	physx::PxTransform(physx::PxVec3(-40.f, 2.f, -90.f), physx::PxQuat(0.f, 0.f, 0.f, 1.f)),
@@ -70,7 +70,9 @@ constexpr float SteeringAngle = 25.f;
 
 constexpr float RecoverForce = 7.f;
 constexpr float TimeBeforeFliping = 0.6f;
-constexpr float FlipingForce = 7.f;
+
+// tempo (j'espère)
+constexpr float DistanceCollisionDetected = 4.f;
 
 
 enum class GameState

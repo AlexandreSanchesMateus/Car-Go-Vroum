@@ -117,11 +117,11 @@ void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 		m_flipTimer += deltaTime;
 		if (m_flipTimer >= TimeBeforeFliping)
 		{
-			/*physx::PxTransform carFlip;
+			physx::PxTransform carFlip;
 			carFlip.p = m_actor->getGlobalPose().p;
-			carFlip.q = AngleAxis()
+			carFlip.q = physx::PxQuat(0.f, 0.f, 0.f, 1.f);
 
-			m_actor->setGlobalPose(carFlip);*/
+			m_actor->setGlobalPose(carFlip);
 			m_fligging = false;
 		}
 	}

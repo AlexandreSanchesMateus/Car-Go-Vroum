@@ -50,6 +50,11 @@ float Timeline::Evaluate(float time) const
 		return 0.f;
 	}
 
+	if (std::isnan(time))
+		time = 0.f;
+	else if (std::isinf(time))
+		time = 1.f;
+
 	if (time <= 0.f)
 		return std::get<1>(m_timeline[0]);
 	else if (time >= 1.f)

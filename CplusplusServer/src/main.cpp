@@ -497,14 +497,70 @@ void tick_physics(GameData& gameData, Map& map, float deltaTime)
 
 	map.SimulatePhysics(deltaTime);
 
+	// ------------------------------------------------------------------------------------------------
+
+
+	// Check collision
+	// A distance than an real collision
+	bool collisionFound = false;
+	ENetPacket* infectedPacket = nullptr;
+	for (Player& collider1 : gameData.players)
+	{
+		if (collider1.peer == nullptr || collider1.IsPending() || !collider1.car)
+			continue;
+
+		for (Player& collider2 : gameData.players)
+		{
+			if (&collider1 == &collider2 || collider2.peer == nullptr || collider2.IsPending() || !collider2.car)
+				continue;
+
+			if ((collider1.isInfected ^ collider2.isInfected) && (collider1.car->GetPhysixActor().getGlobalPose().p - collider2.car->GetPhysixActor().getGlobalPose().p).magnitude() <= DistanceCollisionDetected)
+			{
+				PlayerInfectedPacket playerInfectedPacket;
+				if (collider1.isInfected)
+				{
+					collider2.isInfected = true;
+					playerInfectedPacket.playerIndex = collider2.index;
+					infectedPacket = build_packet<PlayerInfectedPacket>(playerInfectedPacket, ENET_PACKET_FLAG_RELIABLE);
+					collisionFound = true;
+					break;
+				}
+				else if(collider2.isInfected)
+				{
+					collider1.isInfected = true;
+					playerInfectedPacket.playerIndex = collider1.index;
+					infectedPacket = build_packet<PlayerInfectedPacket>(playerInfectedPacket, ENET_PACKET_FLAG_RELIABLE);
+					collisionFound = true;
+					break;
+				}
+			}
+
+			if (collisionFound)
+				break;
+		}
+	}
+
+	// ------------------------------------------------------------------------------------------------
+
 	for (const Player& player : gameData.players)
 	{
 		if (player.peer != nullptr && !player.IsPending())
 		{
 			ENetPacket* packet = build_player_state_packet(gameData, player);
 			enet_peer_send(player.peer, 0, packet);
+
+			if(collisionFound)
+				enet_peer_send(player.peer, 0, infectedPacket);
 		}
 	}
+
+	// ------------------------------------------------------------------------------------------------
+
+	// tempo
+	if (collisionFound)
+		gameData.CheckGameStatus(map);
+
+	// ------------------------------------------------------------------------------------------------
 }
 
 void tick_logic(GameData& gameData, Map& map, std::uint32_t now, const Command& cmdPrompt)
