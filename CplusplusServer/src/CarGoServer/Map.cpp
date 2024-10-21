@@ -171,6 +171,7 @@ void Map::InitPhysics()
 	fmt::print(stderr, fg(fmt::color::green), "Physx Initialized\n");
 
 	UnserializeMap(MapPath);
+	UnserializeMap("assets/Plane.json");
 
 	fmt::print("    => ");
 	fmt::print(stderr, fg(fmt::color::green), "Map Deserialized\n\n");
