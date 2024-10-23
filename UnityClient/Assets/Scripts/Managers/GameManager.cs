@@ -89,14 +89,14 @@ public class GameManager : MonoBehaviour
                     ++m_infectedCount;
                     ownCarController.transform.position = infectedSpawn[player.slotId].position;
                     ownCarController.transform.rotation = infectedSpawn[player.slotId].rotation;
-                    ownCarController.InitController(true);
+                    ownCarController.InitController(true, player.Name);
                 }
                 else
                 {
                     ++m_survivorCount;
                     ownCarController.transform.position = survivorSpawn[player.slotId].position;
                     ownCarController.transform.rotation = survivorSpawn[player.slotId].rotation;
-                    ownCarController.InitController(false);
+                    ownCarController.InitController(false, player.Name);
                 }
             }
             else
@@ -184,6 +184,8 @@ public class GameManager : MonoBehaviour
                 if(count > 0)
                     m_predictedState.RemoveRange(0, count);
 
+                Debug.Log(m_predictedState.Count);
+
                 // if (performReconciliation)
                 {
                     // teleport
@@ -270,13 +272,13 @@ public class GameManager : MonoBehaviour
             return;
 
         // update simulation
-        /*foreach (Player player in SCORef.GameData.players)
+        foreach (Player player in SCORef.GameData.players)
         {
             if (player.carController != null)
                 player.carController.UpdatePhysics();
         }
 
-        Physics.Simulate(Time.fixedDeltaTime);*/
+        Physics.Simulate(Time.fixedDeltaTime);
 
         if (inputManager != null && SCORef != null && SCORef.Network != null)
         {

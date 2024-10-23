@@ -3,7 +3,6 @@
 #include "CarGoServer/MapData.hpp"
 #include "CarGoServer/ClientCar.hpp"
 #include "CarGoServer/CarSimulationEventCallback.hpp"
-#include "CarGoServer/CarSimulationFilterCallback.hpp"
 #include <physx/PxPhysicsAPI.h>
 #include <vector>
 #include <memory>

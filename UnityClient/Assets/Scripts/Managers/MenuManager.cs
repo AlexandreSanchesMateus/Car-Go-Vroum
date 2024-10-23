@@ -12,6 +12,8 @@ public class MenuManager : MonoBehaviour
 {
     [SerializeField, BoxGroup("Init")]
     private GameRefSCO SCORef;
+    [SerializeField, BoxGroup("Init")]
+    private SaveDataSCO saveSCO;
 
     [SerializeField, BoxGroup("Join")]
     private GameObject joinPanel;
@@ -63,6 +65,15 @@ public class MenuManager : MonoBehaviour
             }
         }
 
+        if(saveSCO != null)
+        {
+            if(!string.IsNullOrEmpty(saveSCO.lastName))
+                pseudoInputField.text = saveSCO.lastName;
+
+            if(!string.IsNullOrEmpty(saveSCO.lastAddress))
+                ipInputField.text = saveSCO.lastAddress;
+        }
+
         joinBtn.interactable = false;
 
         pseudoInputField.onSubmit.AddListener(this.TryConnectToNetwork);
@@ -88,11 +99,15 @@ public class MenuManager : MonoBehaviour
             connectionError.text = "Enter a valid IP adress";
             return;
         }
+
         else if (string.IsNullOrEmpty(pseudoInputField.text))
         {
             connectionError.text = "Enter a valid nickname";
             return;
         }
+        
+        saveSCO.lastAddress = ipInputField.text;
+        saveSCO.lastName = pseudoInputField.text;
 
         joinPanel.SetActive(false);
         connectionPanel.SetActive(true);
@@ -289,6 +304,11 @@ public class MenuManager : MonoBehaviour
     {
         if(SCORef != null && SCORef.Network != null)
             SCORef.Network.Disconnect();
+    }
+
+    public void GoToDriveTestScene()
+    {
+        SceneManager.LoadScene(2);
     }
 
     public void ReturnToDesktop()

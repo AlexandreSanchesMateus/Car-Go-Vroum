@@ -443,6 +443,7 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 		playerState.linearVelocity = other.car->GetPhysixActor().getLinearVelocity();
 		playerState.angularVelocity = other.car->GetPhysixActor().getAngularVelocity();
 
+
 		playerState.atRest = playerState.linearVelocity.magnitude() <= 0.01f && playerState.angularVelocity.magnitude() <= 0.01f;
 		if (!playerState.atRest)
 		{
@@ -463,6 +464,8 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 
 	packet.localLinearVelocity = targetPlayer.car->GetPhysixActor().getLinearVelocity();
 	packet.localAngularVelocity = targetPlayer.car->GetPhysixActor().getAngularVelocity();
+
+	//fmt::println("Linear velocity : x {}, y {}, z {},    angular velocity : x {}, y {}, z {}", packet.localLinearVelocity.x, packet.localLinearVelocity.y, packet.localLinearVelocity.z, packet.localAngularVelocity.x, packet.localAngularVelocity.y, packet.localAngularVelocity.z);
 
 	packet.localAtRest = packet.localLinearVelocity.magnitude() <= 0.01f && packet.localAngularVelocity.magnitude() <= 0.01f;
 	if (!packet.localAtRest)

@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using System.Net;
 using System.Text;
-using UnityEngine.Windows;
 
 
 namespace NetworkProtocol
@@ -437,18 +435,18 @@ namespace NetworkProtocol
             packet.localAtRest = Serializer.Deserialize_uByte(byteArray, ref offset) != 0;
             if (!packet.localAtRest)
             {
-                packet.localPhysicState.linearVelocity.x = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localPhysicState.linearVelocity.y = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localPhysicState.linearVelocity.z = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.linearVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
+                packet.localPhysicState.linearVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);
+                packet.localPhysicState.linearVelocity.z = Serializer.Deserialize_float(byteArray, ref offset);
 
-                packet.localPhysicState.angularVelocity.x = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localPhysicState.angularVelocity.y = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localPhysicState.angularVelocity.z = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.angularVelocity.x = Serializer.Deserialize_float(byteArray, ref offset);
+                packet.localPhysicState.angularVelocity.y = Serializer.Deserialize_float(byteArray, ref offset);
+                packet.localPhysicState.angularVelocity.z = Serializer.Deserialize_float(byteArray, ref offset);
 
-                packet.localPhysicState.frontLeftWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localPhysicState.frontRightWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localPhysicState.rearLeftWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
-                packet.localPhysicState.rearRightWheelVelocity = Serializer.Deserialize_u32(byteArray, ref offset);
+                packet.localPhysicState.frontLeftWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                packet.localPhysicState.frontRightWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                packet.localPhysicState.rearLeftWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
+                packet.localPhysicState.rearRightWheelVelocity = Serializer.Deserialize_float(byteArray, ref offset);
             }
 
             int playerCount = Serializer.Deserialize_uByte(byteArray, ref offset);

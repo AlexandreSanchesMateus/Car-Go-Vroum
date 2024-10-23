@@ -356,7 +356,7 @@ public class CarController : MonoBehaviour
         carRb.angularVelocity = new Vector3(0, 0, 0);*/
     }
 
-    public void InitController(bool infected, string name = "")
+    public void InitController(bool infected, string name)
     {
         if (nameTxt != null)
             nameTxt.text = name;
