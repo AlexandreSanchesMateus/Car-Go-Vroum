@@ -8,6 +8,8 @@
 #include <fmt/core.h>
 #include <fmt/color.h>
 
+physx::PxFilterFlags CarSimulationFilterShader(physx::PxFilterObjectAttributes attributes0, physx::PxFilterData filterData0, physx::PxFilterObjectAttributes attributes1, physx::PxFilterData filterData1, physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSize);
+
 Map::Map(GameData& gameData) : m_carSimulationCallback(gameData, *this)
 {
 	std::srand(std::time(nullptr));
@@ -51,8 +53,9 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 	else 
 		dynamicCar = m_gPhysics->createRigidDynamic(SurvivorSpawns[spawnSlotId]);
 
-	physx::PxFilterData filterData(physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eNOTIFY_TOUCH_FOUND | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS, 
-		physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eNOTIFY_TOUCH_FOUND | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS, 0, 0);
+	physx::PxFilterData filterData;
+	filterData.word0 = FilterGroup::ePLAYERS_CAR;
+	filterData.word1 = FilterGroup::ePLAYERS_CAR | FilterGroup::eGROUND;
 
 	physx::PxShape* boxShape1 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.95, 0.3, 2.75)), *m_gMaterial);
 	physx::PxShape* boxShape2 = m_gPhysics->createShape(physx::PxBoxGeometry(physx::PxVec3(0.7, 0.245, 0.975)), *m_gMaterial);
@@ -60,18 +63,10 @@ physx::PxRigidDynamic* Map::CreateRigidCar(std::uint8_t spawnSlotId, bool isInfe
 
 	boxShape1->setContactOffset(0.01f); // unity default
 	boxShape1->setRestOffset(0.f); // unity default
-
-	// Enable contact callback
-	boxShape1->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
-	boxShape1->setFlag(physx::PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 	boxShape1->setSimulationFilterData(filterData);
 
 	boxShape2->setContactOffset(0.01f); // unity default
 	boxShape2->setRestOffset(0.f); // unity default
-
-	// Enable contact callback
-	boxShape2->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
-	boxShape2->setFlag(physx::PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 	boxShape2->setSimulationFilterData(filterData);
 
 	dynamicCar->attachShape(*boxShape1);
@@ -158,12 +153,9 @@ void Map::InitPhysics()
     sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
     sceneDesc.cpuDispatcher = m_gDispatcher;
 	sceneDesc.solverType = physx::PxSolverType::ePGS;
-    sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
-	sceneDesc.filterCallback = &m_carSimulationFilter;
+	sceneDesc.filterShader = CarSimulationFilterShader;
 	sceneDesc.simulationEventCallback = &m_carSimulationCallback;
     m_gScene = m_gPhysics->createScene(sceneDesc);
-
-	// m_gScene->setSimulationEventCallback(&m_carSimulationCallback);
 
     m_gMaterial = m_gPhysics->createMaterial(0.6f, 0.6f, 0.f); // Unity Default Params
 
@@ -171,7 +163,6 @@ void Map::InitPhysics()
 	fmt::print(stderr, fg(fmt::color::green), "Physx Initialized\n");
 
 	UnserializeMap(MapPath);
-	UnserializeMap("assets/Plane.json");
 
 	fmt::print("    => ");
 	fmt::print(stderr, fg(fmt::color::green), "Map Deserialized\n\n");
@@ -199,6 +190,10 @@ void Map::UnserializeMap(std::string mapPath) {
 
 	m_mapData.from_json(data);
 
+	physx::PxFilterData filterData;
+	filterData.word0 = FilterGroup::eGROUND;
+	filterData.word1 = FilterGroup::ePLAYERS_CAR;
+
 	for (const auto& obj : m_mapData.physicObjects)
 	{
 		if (obj) 
@@ -210,6 +205,11 @@ void Map::UnserializeMap(std::string mapPath) {
 				physx::PxRigidStatic* capsuleStaticActor = m_gPhysics->createRigidStatic(physx::PxTransform(capsule->position));
 				physx::PxTransform relativePose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0, 0, 1)));
 				physx::PxShape* aCapsuleShape = physx::PxRigidActorExt::createExclusiveShape(*capsuleStaticActor, physx::PxCapsuleGeometry(capsule->radius, capsule->height / 2), *m_gMaterial);
+
+				aCapsuleShape->setContactOffset(0.01f); // unity default
+				aCapsuleShape->setRestOffset(0.f); // unity default
+				aCapsuleShape->setSimulationFilterData(filterData);
+				
 				aCapsuleShape->setLocalPose(relativePose);
 				m_gScene->addActor(*capsuleStaticActor);
 			}
@@ -218,10 +218,12 @@ void Map::UnserializeMap(std::string mapPath) {
 				SphereObject* sphere = dynamic_cast<SphereObject*>(obj.get());
 
 				physx::PxRigidStatic* sphereStaticActor = m_gPhysics->createRigidStatic(physx::PxTransform(sphere->position));
+				physx::PxShape* sphereShape = physx::PxRigidActorExt::createExclusiveShape(*sphereStaticActor, physx::PxSphereGeometry(sphere->radius), *m_gMaterial);
 
-				physx::PxShape* sphereShape = physx::PxRigidActorExt::createExclusiveShape(*sphereStaticActor,
-					physx::PxSphereGeometry(sphere->radius), *m_gMaterial);
-				
+				sphereShape->setContactOffset(0.01f); // unity default
+				sphereShape->setRestOffset(0.f); // unity default
+				sphereShape->setSimulationFilterData(filterData);
+
 				m_gScene->addActor(*sphereStaticActor);
 			}
 			else if (obj->type == "box")
@@ -229,9 +231,11 @@ void Map::UnserializeMap(std::string mapPath) {
 				BoxObject* box = dynamic_cast<BoxObject*>(obj.get());
 
 				physx::PxRigidStatic* boxStaticActor = m_gPhysics->createRigidStatic(physx::PxTransform(box->position, box->rotation));
+				physx::PxShape* boxShape = physx::PxRigidActorExt::createExclusiveShape(*boxStaticActor, physx::PxBoxGeometry(box->extents / 2), *m_gMaterial);
 
-				physx::PxShape* sphereShape = physx::PxRigidActorExt::createExclusiveShape(*boxStaticActor,
-					physx::PxBoxGeometry(box->extents / 2), *m_gMaterial);
+				boxShape->setContactOffset(0.01f); // unity default
+				boxShape->setRestOffset(0.f); // unity default
+				boxShape->setSimulationFilterData(filterData);
 
 				m_gScene->addActor(*boxStaticActor);
 			}
@@ -261,10 +265,11 @@ void Map::UnserializeMap(std::string mapPath) {
 				physx::PxTriangleMesh* triangleMesh = m_gPhysics->createTriangleMesh(readBuffer);
 				
 				physx::PxRigidStatic* staticActor = m_gPhysics->createRigidStatic(physx::PxTransform(mesh->position, mesh->rotation));
-
 				physx::PxShape* shape = physx::PxRigidActorExt::createExclusiveShape(*staticActor, physx::PxTriangleMeshGeometry(triangleMesh), *m_gMaterial);
+
 				shape->setContactOffset(0.01f);
 				shape->setRestOffset(0.f);
+				shape->setSimulationFilterData(filterData);
 
 				m_gScene->addActor(*staticActor);
 			}
@@ -288,4 +293,20 @@ physx::PxFoundation* Map::GetFoundation() const
 physx::PxPhysics* Map::GetPhysics() const
 {
 	return m_gPhysics;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////
+
+physx::PxFilterFlags CarSimulationFilterShader(
+	physx::PxFilterObjectAttributes attributes0, physx::PxFilterData filterData0,
+	physx::PxFilterObjectAttributes attributes1, physx::PxFilterData filterData1,
+	physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSize)
+{
+	pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
+
+	if ((filterData0.word0 & filterData1.word1) && (filterData1.word0 & filterData0.word1))
+		pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_FOUND;
+
+	return physx::PxFilterFlag::eDEFAULT;
 }

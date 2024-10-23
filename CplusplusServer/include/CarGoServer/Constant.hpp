@@ -91,3 +91,12 @@ enum class DisconnectReport : std::uint32_t
 	LOBBY_FULL,
 	GAME_LAUNCHED
 };
+
+struct FilterGroup
+{
+	enum Enum
+	{
+		ePLAYERS_CAR = (1 << 0),
+		eGROUND = (1 << 1),
+	};
+};

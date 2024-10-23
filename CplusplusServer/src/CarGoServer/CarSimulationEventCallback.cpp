@@ -4,29 +4,24 @@
 
 #include <fmt/core.h>
 
-CarSimulationEventCallback::CarSimulationEventCallback(GameData& gameData, Map& map) : PxSimulationEventCallback(), m_gameData(gameData), m_map(map)
+CarSimulationEventCallback::CarSimulationEventCallback(GameData& gameData, Map& map) : m_gameData(gameData), m_map(map)
 {
 }
 
-void CarSimulationEventCallback::onConstraintBreak(physx::PxConstraintInfo*, physx::PxU32)
+void CarSimulationEventCallback::onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count)
 {
 }
 
-void CarSimulationEventCallback::onWake(physx::PxActor**, physx::PxU32)
+void CarSimulationEventCallback::onWake(physx::PxActor** actors, physx::PxU32 count)
 {
 }
 
-void CarSimulationEventCallback::onSleep(physx::PxActor**, physx::PxU32)
+void CarSimulationEventCallback::onSleep(physx::PxActor** actors, physx::PxU32 count)
 {
 }
 
 void CarSimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
 {
-    fmt::println("Collision Detected");
-
-    /*physx::PxRigidActor* actor0 = static_cast<physx::PxRigidActor*>(pairHeader.actors[0]);
-    physx::PxRigidActor* actor1 = static_cast<physx::PxRigidActor*>(pairHeader.actors[1]);*/
-
     physx::PxRigidDynamic* actor0 = pairHeader.actors[0]->is<physx::PxRigidDynamic>();
     physx::PxRigidDynamic* actor1 = pairHeader.actors[1]->is<physx::PxRigidDynamic>();
 
@@ -38,12 +33,14 @@ void CarSimulationEventCallback::onContact(const physx::PxContactPairHeader& pai
 
     if (car0 && car1)
     {
+        fmt::println("Collision Detected");
+
         auto itCar0 = std::find_if(m_gameData.players.begin(), m_gameData.players.end(), [&](const Player& player) { return player.car.get() == car0; });
         auto itCar1 = std::find_if(m_gameData.players.begin(), m_gameData.players.end(), [&](const Player& player) { return player.car.get() == car1; });
 
-        if (itCar0 != m_gameData.players.end() && itCar1 != m_gameData.players.end()) 
+        if (itCar0 != m_gameData.players.end() && itCar1 != m_gameData.players.end())
         {
-            if (itCar0->isInfected ^ itCar1->isInfected) 
+            if (itCar0->isInfected ^ itCar1->isInfected)
             {
                 PlayerInfectedPacket packet;
 
@@ -75,6 +72,6 @@ void CarSimulationEventCallback::onTrigger(physx::PxTriggerPair* pairs, physx::P
 {
 }
 
-void CarSimulationEventCallback::onAdvance(const physx::PxRigidBody* const*, const physx::PxTransform*, const physx::PxU32)
+void CarSimulationEventCallback::onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count)
 {
 }

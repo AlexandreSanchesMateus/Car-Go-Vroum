@@ -200,7 +200,7 @@ int main()
 			case Command::Action::Kick:
 			{
 				auto it = std::find_if(gameData.players.begin(), gameData.players.end(), [&commandReport](const Player& other) {return commandReport->params == other.index; });
-				if (it != gameData.players.end())
+				if (it != gameData.players.end() && it->peer != nullptr)
 					enet_peer_disconnect(it->peer, (std::uint32_t)DisconnectReport::KICK);
 				else
 				{
@@ -435,7 +435,7 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 		PlayersStatePacket::PlayerState playerState;
 		playerState.playerIndex = other.index;
 		playerState.inputs = other.lastInput;
-		playerState.turnAngle = other.car->GetCurrentTurnAngle();
+		playerState.turnAngle = 0.f;
 
 		playerState.position = other.car->GetPhysixActor().getGlobalPose().p;
 		playerState.rotation = other.car->GetPhysixActor().getGlobalPose().q;
@@ -456,7 +456,7 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 	}
 
 	packet.inputIndex = targetPlayer.lastInputIndex;
-	packet.localTurnAngle = targetPlayer.car->GetCurrentTurnAngle();
+	packet.localTurnAngle = 0.f;
 
 	packet.localPosition = targetPlayer.car->GetPhysixActor().getGlobalPose().p;
 	packet.localRotation = targetPlayer.car->GetPhysixActor().getGlobalPose().q;
@@ -497,70 +497,14 @@ void tick_physics(GameData& gameData, Map& map, float deltaTime)
 
 	map.SimulatePhysics(deltaTime);
 
-	// ------------------------------------------------------------------------------------------------
-
-
-	// Check collision
-	// A distance than an real collision
-	bool collisionFound = false;
-	ENetPacket* infectedPacket = nullptr;
-	for (Player& collider1 : gameData.players)
-	{
-		if (collider1.peer == nullptr || collider1.IsPending() || !collider1.car)
-			continue;
-
-		for (Player& collider2 : gameData.players)
-		{
-			if (&collider1 == &collider2 || collider2.peer == nullptr || collider2.IsPending() || !collider2.car)
-				continue;
-
-			if ((collider1.isInfected ^ collider2.isInfected) && (collider1.car->GetPhysixActor().getGlobalPose().p - collider2.car->GetPhysixActor().getGlobalPose().p).magnitude() <= DistanceCollisionDetected)
-			{
-				PlayerInfectedPacket playerInfectedPacket;
-				if (collider1.isInfected)
-				{
-					collider2.isInfected = true;
-					playerInfectedPacket.playerIndex = collider2.index;
-					infectedPacket = build_packet<PlayerInfectedPacket>(playerInfectedPacket, ENET_PACKET_FLAG_RELIABLE);
-					collisionFound = true;
-					break;
-				}
-				else if(collider2.isInfected)
-				{
-					collider1.isInfected = true;
-					playerInfectedPacket.playerIndex = collider1.index;
-					infectedPacket = build_packet<PlayerInfectedPacket>(playerInfectedPacket, ENET_PACKET_FLAG_RELIABLE);
-					collisionFound = true;
-					break;
-				}
-			}
-
-			if (collisionFound)
-				break;
-		}
-	}
-
-	// ------------------------------------------------------------------------------------------------
-
 	for (const Player& player : gameData.players)
 	{
 		if (player.peer != nullptr && !player.IsPending())
 		{
 			ENetPacket* packet = build_player_state_packet(gameData, player);
 			enet_peer_send(player.peer, 0, packet);
-
-			if(collisionFound)
-				enet_peer_send(player.peer, 0, infectedPacket);
 		}
 	}
-
-	// ------------------------------------------------------------------------------------------------
-
-	// tempo
-	if (collisionFound)
-		gameData.CheckGameStatus(map);
-
-	// ------------------------------------------------------------------------------------------------
 }
 
 void tick_logic(GameData& gameData, Map& map, std::uint32_t now, const Command& cmdPrompt)
