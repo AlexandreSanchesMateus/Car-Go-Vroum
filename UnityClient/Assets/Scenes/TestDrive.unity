@@ -7567,6 +7567,8 @@ MonoBehaviour:
   carController: {fileID: 1823034583}
   speed: {fileID: 942201398}
   inputManager: {fileID: 1905812703}
+  A: {fileID: 0}
+  B: {fileID: 0}
 --- !u!4 &1757935069
 Transform:
   m_ObjectHideFlags: 0

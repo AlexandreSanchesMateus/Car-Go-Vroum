@@ -2,8 +2,6 @@
 #include "CarGoServer/ClientCar.hpp"
 #include "CarGoServer/Protocol.hpp"
 
-#include <fmt/core.h>
-
 CarSimulationEventCallback::CarSimulationEventCallback(GameData& gameData, Map& map) : m_gameData(gameData), m_map(map)
 {
 }
@@ -33,8 +31,6 @@ void CarSimulationEventCallback::onContact(const physx::PxContactPairHeader& pai
 
     if (car0 && car1)
     {
-        fmt::println("Collision Detected");
-
         auto itCar0 = std::find_if(m_gameData.players.begin(), m_gameData.players.end(), [&](const Player& player) { return player.car.get() == car0; });
         auto itCar1 = std::find_if(m_gameData.players.begin(), m_gameData.players.end(), [&](const Player& player) { return player.car.get() == car1; });
 

@@ -33,6 +33,7 @@ public:
 	float GetRearRightWheelVelocity() const;
 
 	float GetCurrentTurnAngle() const;
+	std::uint16_t GetCarIndex() const;
 
 private:
 	bool UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictionTimeLine, const PlayerInput& inputs, float deltaTime);

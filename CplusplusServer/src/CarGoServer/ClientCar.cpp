@@ -245,3 +245,8 @@ float ClientCar::GetCurrentTurnAngle() const
 {
 	return m_currentTurnAngle;
 }
+
+std::uint16_t ClientCar::GetCarIndex() const
+{
+	return m_playerIndex;
+}

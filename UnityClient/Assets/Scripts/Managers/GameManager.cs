@@ -47,8 +47,6 @@ public class GameManager : MonoBehaviour
     private bool m_gameEnded = false;
 
     private List<PredictedInput> m_predictedState = new List<PredictedInput>();
-    private Queue<PlayersStatePacket> m_jitterBuffer = new Queue<PlayersStatePacket>();
-    float m_jitterFactor = 1f;
     private UInt16 m_nextInputIndex = 1;
 
     private void Awake()
@@ -104,148 +102,6 @@ public class GameManager : MonoBehaviour
         infectedCountTxt.text = "INFECTED - " + m_infectedCount.ToString("D2");
     }
 
-    private void Update()
-    {
-        speedTxt.text = ownCarController.ShowSpeed.ToString();
-
-        /*// jitter buffer
-        if (m_jitterBuffer.Count >= 2)
-        {
-            float interpIncrement = Time.deltaTime / 0.02f;
-
-            if (m_jitterBuffer.Count > targetJitterBufferSize)
-                interpIncrement *= 1.0f + (0.05f * (m_jitterBuffer.Count - targetJitterBufferSize));
-            else
-                interpIncrement *= 1.0f - (0.05f * (targetJitterBufferSize - m_jitterBuffer.Count));
-
-            m_jitterFactor += interpIncrement;
-
-            // interpolate visual
-
-            if (m_jitterFactor >= 1.0f)
-            {*/
-
-        if (m_jitterBuffer.Count > 0)
-        {
-            // traite le dernier packet
-            PlayersStatePacket packet = m_jitterBuffer.Dequeue();
-
-            bool performReconciliation = false;
-
-            int count = 0;
-            PredictedInput predictedInput = null;
-            foreach (PredictedInput input in m_predictedState)
-            {
-                if (input.inputIndex <= packet.inputIndex)
-                {
-                    ++count;
-                    if (input.inputIndex == packet.inputIndex && predictedInput == null)
-                        predictedInput = input;
-                }
-                else if (input.inputIndex > packet.inputIndex)
-                    break;
-            }
-
-            if (predictedInput != null)
-            {
-                // TODO
-                if (DoesNeedReconciliation(predictedInput.physicState, packet.localPhysicState))
-                    performReconciliation = true;
-
-                if (!performReconciliation)
-                {
-                    foreach (PlayersStatePacket.PlayerState other in packet.otherPlayerState)
-                    {
-                        if (predictedInput.others.TryGetValue(other.playerIndex, out PhysicState state) && DoesNeedReconciliation(state, other.physicState))
-                        {
-                            performReconciliation = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (count > 0)
-                m_predictedState.RemoveRange(0, count);
-
-            if (performReconciliation)
-            {
-                // teleport
-                ownCarController.SetCarInput(predictedInput.localInput);
-                ownCarController.SetTurnAngle(packet.localTurnAngle);
-
-                ownCarController.gameObject.transform.position = packet.localPhysicState.position;
-                ownCarController.gameObject.transform.rotation = packet.localPhysicState.rotation;
-
-                if (packet.localAtRest)
-                {
-                    ownCarController.CarRb.velocity = new Vector3(0f, 0.00000001f, 0f);
-                    ownCarController.CarRb.angularVelocity = Vector3.zero;
-                }
-                else
-                {
-                    ownCarController.CarRb.velocity = packet.localPhysicState.linearVelocity;
-                    ownCarController.CarRb.angularVelocity = packet.localPhysicState.angularVelocity;
-
-                    ownCarController.FrontLeftWheelVelocity = packet.localPhysicState.frontLeftWheelVelocity;
-                    ownCarController.FrontRightWheelVelocity = packet.localPhysicState.frontRightWheelVelocity;
-                    ownCarController.RearLeftWheelVelocity = packet.localPhysicState.rearLeftWheelVelocity;
-                    ownCarController.RearRightWheelVelocity = packet.localPhysicState.rearRightWheelVelocity;
-                }
-
-                foreach (PlayersStatePacket.PlayerState playerState in packet.otherPlayerState)
-                {
-                    Player player = SCORef.GameData.players.Find((Player other) => { return other.Index == playerState.playerIndex; });
-
-                    if (player != null)
-                    {
-                        player.carController.SetCarInput(playerState.inputs);
-                        player.carController.SetTurnAngle(playerState.turnAngle);
-
-                        player.carController.transform.position = playerState.physicState.position;
-                        player.carController.transform.rotation = playerState.physicState.rotation;
-
-                        if (playerState.atRest)
-                        {
-                            player.carController.CarRb.velocity = Vector3.zero;
-                            player.carController.CarRb.angularVelocity = Vector3.zero;
-                        }
-                        else
-                        {
-                            player.carController.CarRb.velocity = playerState.physicState.linearVelocity;
-                            player.carController.CarRb.angularVelocity = playerState.physicState.angularVelocity;
-
-                            player.carController.FrontLeftWheelVelocity = playerState.physicState.frontLeftWheelVelocity;
-                            player.carController.FrontRightWheelVelocity = playerState.physicState.frontRightWheelVelocity;
-                            player.carController.RearLeftWheelVelocity = playerState.physicState.rearLeftWheelVelocity;
-                            player.carController.RearRightWheelVelocity = playerState.physicState.rearRightWheelVelocity;
-                        }
-                    }
-                }
-
-                for (int i = 0; i < m_predictedState.Count; i++)
-                {
-                    foreach (Player player in SCORef.GameData.players)
-                    {
-                        if (player.carController == null)
-                            continue;
-
-                        if (player.Index == SCORef.GameData.ownPlayerIndex)
-                            player.carController.SetCarInput(m_predictedState[i].localInput);
-
-                        player.carController.UpdatePhysics();
-                    }
-
-                    Physics.Simulate(Time.fixedDeltaTime);
-                }
-            }
-        }
-
-        //m_jitterFactor -= 1.0f;
-        //}
-        //}
-    }
-
     private void FixedUpdate()
     {
         if (m_gameEnded)
@@ -259,48 +115,51 @@ public class GameManager : MonoBehaviour
         }
 
         Physics.Simulate(Time.fixedDeltaTime);
+        speedTxt.text = ownCarController.ShowSpeed.ToString();
 
         // send input
-        PlayerInputPacket packet = new PlayerInputPacket();
-        packet.inputs = inputManager.m_lastInput;
-        packet.inputIndex = m_nextInputIndex++;
+        PlayerInputPacket inputPacket = new PlayerInputPacket();
+        inputPacket.inputs = inputManager.m_lastInput;
+        inputPacket.inputIndex = m_nextInputIndex++;
 
-        SCORef.Network.BuildAndSendPacketToNetwork<PlayerInputPacket>(packet, ENet6.PacketFlags.None, 0);
+        SCORef.Network.BuildAndSendPacketToNetwork<PlayerInputPacket>(inputPacket, ENet6.PacketFlags.None, 0);
 
         // store state
-        PredictedInput predictedInput = new PredictedInput();
-        predictedInput.localInput = inputManager.m_lastInput;
-        predictedInput.inputIndex = packet.inputIndex;
-
-        predictedInput.physicState.position = ownCarController.transform.position;
-        predictedInput.physicState.rotation = ownCarController.transform.rotation;
-
-        predictedInput.physicState.linearVelocity = ownCarController.CarRb.velocity;
-        predictedInput.physicState.angularVelocity = ownCarController.CarRb.angularVelocity;
-
-        predictedInput.physicState.frontLeftWheelVelocity = ownCarController.FrontLeftWheelVelocity;
-        predictedInput.physicState.frontRightWheelVelocity = ownCarController.FrontRightWheelVelocity;
-        predictedInput.physicState.rearLeftWheelVelocity = ownCarController.RearLeftWheelVelocity;
-        predictedInput.physicState.rearRightWheelVelocity = ownCarController.RearRightWheelVelocity;
-
-        foreach (Player player in SCORef.GameData.players)
         {
-            PhysicState otherState = new PhysicState();
-            otherState.position = player.carController.transform.position;
-            otherState.rotation = player.carController.transform.rotation;
+            PredictedInput predictedInput = new PredictedInput();
+            predictedInput.localInput = inputManager.m_lastInput;
+            predictedInput.inputIndex = inputPacket.inputIndex;
 
-            otherState.linearVelocity = player.carController.CarRb.velocity;
-            otherState.angularVelocity = player.carController.CarRb.angularVelocity;
+            predictedInput.physicState.position = ownCarController.transform.position;
+            predictedInput.physicState.rotation = ownCarController.transform.rotation;
 
-            otherState.frontLeftWheelVelocity = player.carController.FrontLeftWheelVelocity;
-            otherState.frontRightWheelVelocity = player.carController.FrontRightWheelVelocity;
-            otherState.rearLeftWheelVelocity = player.carController.RearLeftWheelVelocity;
-            otherState.rearRightWheelVelocity = player.carController.RearRightWheelVelocity;
+            predictedInput.physicState.linearVelocity = ownCarController.CarRb.velocity;
+            predictedInput.physicState.angularVelocity = ownCarController.CarRb.angularVelocity;
 
-            predictedInput.others.Add(player.Index, otherState);
+            predictedInput.physicState.frontLeftWheelVelocity = ownCarController.FrontLeftWheelVelocity;
+            predictedInput.physicState.frontRightWheelVelocity = ownCarController.FrontRightWheelVelocity;
+            predictedInput.physicState.rearLeftWheelVelocity = ownCarController.RearLeftWheelVelocity;
+            predictedInput.physicState.rearRightWheelVelocity = ownCarController.RearRightWheelVelocity;
+
+            foreach (Player player in SCORef.GameData.players)
+            {
+                PhysicState otherState = new PhysicState();
+                otherState.position = player.carController.transform.position;
+                otherState.rotation = player.carController.transform.rotation;
+
+                otherState.linearVelocity = player.carController.CarRb.velocity;
+                otherState.angularVelocity = player.carController.CarRb.angularVelocity;
+
+                otherState.frontLeftWheelVelocity = player.carController.FrontLeftWheelVelocity;
+                otherState.frontRightWheelVelocity = player.carController.FrontRightWheelVelocity;
+                otherState.rearLeftWheelVelocity = player.carController.RearLeftWheelVelocity;
+                otherState.rearRightWheelVelocity = player.carController.RearRightWheelVelocity;
+
+                predictedInput.others.Add(player.Index, otherState);
+            }
+
+            m_predictedState.Add(predictedInput);
         }
-
-        m_predictedState.Add(predictedInput);
     }
 
     public void HandleMessage(byte[] message)
@@ -387,7 +246,116 @@ public class GameManager : MonoBehaviour
             case EOpcode.S_PlayersState:
                 {
                     PlayersStatePacket playersStatePacket = PlayersStatePacket.Deserialize(byteArray, ref offset);
-                    m_jitterBuffer.Enqueue(playersStatePacket);
+                    
+                    bool performReconciliation = false;
+
+                    int count = 0;
+                    PredictedInput predictedInput = null;
+                    foreach (PredictedInput input in m_predictedState)
+                    {
+                        if (input.inputIndex <= playersStatePacket.inputIndex)
+                        {
+                            ++count;
+                            if (input.inputIndex == playersStatePacket.inputIndex && predictedInput == null)
+                                predictedInput = input;
+                        }
+                        else if (input.inputIndex > playersStatePacket.inputIndex)
+                            break;
+                    }
+
+                    if (predictedInput != null)
+                    {
+                        // TODO
+                        if (DoesNeedReconciliation(predictedInput.physicState, playersStatePacket.localPhysicState))
+                            performReconciliation = true;
+
+                        if (!performReconciliation)
+                        {
+                            foreach (PlayersStatePacket.PlayerState other in playersStatePacket.otherPlayerState)
+                            {
+                                if (predictedInput.others.TryGetValue(other.playerIndex, out PhysicState state) && DoesNeedReconciliation(state, other.physicState))
+                                {
+                                    performReconciliation = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (count > 0)
+                        m_predictedState.RemoveRange(0, count);
+
+                    if (performReconciliation)
+                    {
+                        // teleport
+                        ownCarController.SetCarInput(predictedInput.localInput);
+                        ownCarController.SetTurnAngle(playersStatePacket.localTurnAngle);
+
+                        ownCarController.gameObject.transform.position = playersStatePacket.localPhysicState.position;
+                        ownCarController.gameObject.transform.rotation = playersStatePacket.localPhysicState.rotation;
+
+                        if (playersStatePacket.localAtRest)
+                        {
+                            ownCarController.CarRb.velocity = new Vector3(0f, 0.00000001f, 0f);
+                            ownCarController.CarRb.angularVelocity = Vector3.zero;
+                        }
+                        else
+                        {
+                            ownCarController.CarRb.velocity = playersStatePacket.localPhysicState.linearVelocity;
+                            ownCarController.CarRb.angularVelocity = playersStatePacket.localPhysicState.angularVelocity;
+
+                            ownCarController.FrontLeftWheelVelocity = playersStatePacket.localPhysicState.frontLeftWheelVelocity;
+                            ownCarController.FrontRightWheelVelocity = playersStatePacket.localPhysicState.frontRightWheelVelocity;
+                            ownCarController.RearLeftWheelVelocity = playersStatePacket.localPhysicState.rearLeftWheelVelocity;
+                            ownCarController.RearRightWheelVelocity = playersStatePacket.localPhysicState.rearRightWheelVelocity;
+                        }
+
+                        foreach (PlayersStatePacket.PlayerState playerState in playersStatePacket.otherPlayerState)
+                        {
+                            Player player = SCORef.GameData.players.Find((Player other) => { return other.Index == playerState.playerIndex; });
+
+                            if (player != null)
+                            {
+                                player.carController.SetCarInput(playerState.inputs);
+                                player.carController.SetTurnAngle(playerState.turnAngle);
+
+                                player.carController.transform.position = playerState.physicState.position;
+                                player.carController.transform.rotation = playerState.physicState.rotation;
+
+                                if (playerState.atRest)
+                                {
+                                    player.carController.CarRb.velocity = new Vector3(0f, 0.00000001f, 0f);
+                                    player.carController.CarRb.angularVelocity = Vector3.zero;
+                                }
+                                else
+                                {
+                                    player.carController.CarRb.velocity = playerState.physicState.linearVelocity;
+                                    player.carController.CarRb.angularVelocity = playerState.physicState.angularVelocity;
+
+                                    player.carController.FrontLeftWheelVelocity = playerState.physicState.frontLeftWheelVelocity;
+                                    player.carController.FrontRightWheelVelocity = playerState.physicState.frontRightWheelVelocity;
+                                    player.carController.RearLeftWheelVelocity = playerState.physicState.rearLeftWheelVelocity;
+                                    player.carController.RearRightWheelVelocity = playerState.physicState.rearRightWheelVelocity;
+                                }
+                            }
+                        }
+
+                        for (int i = 0; i < m_predictedState.Count; i++)
+                        {
+                            foreach (Player player in SCORef.GameData.players)
+                            {
+                                if (player.carController == null)
+                                    continue;
+
+                                if (player.Index == SCORef.GameData.ownPlayerIndex)
+                                    player.carController.SetCarInput(m_predictedState[i].localInput);
+
+                                player.carController.UpdatePhysics();
+                            }
+
+                            Physics.Simulate(Time.fixedDeltaTime);
+                        }
+                    }
                 }
                 break;
 
@@ -424,16 +392,28 @@ public class GameManager : MonoBehaviour
     private bool DoesNeedReconciliation(PhysicState predictedState, PhysicState serverState)
     {
         if ((predictedState.position - serverState.position).magnitude > 0.1f)
+        {
+            //Debug.Log("Wrong Position");
             return true;
+        }
 
-        if ((predictedState.rotation.eulerAngles - serverState.rotation.eulerAngles).magnitude > 0.1f)
+        if (Mathf.Abs(Quaternion.Dot(serverState.rotation, predictedState.rotation)) < 0.9995f)
+        {
+            //Debug.Log("Wrong rotation");
             return true;
+        }
 
         if ((predictedState.linearVelocity - serverState.linearVelocity).magnitude > 0.1f)
+        {
+            //Debug.Log("Wrong linear velocity : " + predictedState.linearVelocity + "    " + serverState.linearVelocity);
             return true;
+        }
 
         if ((predictedState.angularVelocity - serverState.angularVelocity).magnitude > 0.1f)
+        {
+            //Debug.Log("Wrong angular velocity");
             return true;
+        }
 
         return false;
     }

@@ -108,12 +108,26 @@ public class CarController : MonoBehaviour
 
     private void Update()
     {
+        // Update speed UI
         ShowSpeed = (int)(Mathf.Abs(Vector3.Dot(transform.forward, carRb.velocity)) * 3.6f);
 
-        // Faire un float desireTurnRadius et le smoother
-        // puis faire le calcule de rotation
-        m_currentTurnAngle = Mathf.MoveTowards(m_currentTurnAngle, m_desireTurnAngle, (steeringAngle / steeringSpeed) * Time.deltaTime);
-        // float turnRadius = frontRearDistance / Mathf.Sin(Mathf.Deg2Rad * currentTurnAngle);
+        // Update visual
+        LF_wheelData.UpdateRotation(carRb);
+        LF_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
+
+        RF_wheelData.UpdateRotation(carRb);
+        RF_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
+
+        LB_wheelData.UpdateRotation(carRb);
+        LB_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
+
+        RB_wheelData.UpdateRotation(carRb);
+        RB_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
+    }
+
+    public void UpdatePhysics()
+    {
+        m_currentTurnAngle = Mathf.MoveTowards(m_currentTurnAngle, m_desireTurnAngle, (steeringAngle / steeringSpeed) * Time.fixedDeltaTime);
 
         Transform RF_Wheel = RF_wheelData.GetWheelTrs();
         Transform LF_Wheel = LF_wheelData.GetWheelTrs();
@@ -143,22 +157,6 @@ public class CarController : MonoBehaviour
             RF_Wheel.transform.localEulerAngles = new Vector3(0f, 0f, 0f);
         }
 
-        // Update visual
-        LF_wheelData.UpdateRotation(carRb);
-        LF_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
-
-        RF_wheelData.UpdateRotation(carRb);
-        RF_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
-
-        LB_wheelData.UpdateRotation(carRb);
-        LB_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
-
-        RB_wheelData.UpdateRotation(carRb);
-        RB_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
-    }
-
-    public void UpdatePhysics()
-    {
         bool isFullyGrounded = true;
 
         // Wheel physic

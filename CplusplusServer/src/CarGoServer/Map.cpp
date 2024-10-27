@@ -131,7 +131,7 @@ void Map::InitPlayers(GameData& gameData)
 		else
 			player.spawnSlotId = survivorCount++;
 
-		std::shared_ptr<ClientCar> carController = std::make_shared<ClientCar>(ClientCar(player.index, CreateRigidCar(player.spawnSlotId, player.isInfected), m_gScene, m_gPhysics));
+		std::shared_ptr<ClientCar> carController = std::make_shared<ClientCar>(player.index, CreateRigidCar(player.spawnSlotId, player.isInfected), m_gScene, m_gPhysics);
 		m_clientCars.emplace_back(carController);
 		player.car = carController;
 	}

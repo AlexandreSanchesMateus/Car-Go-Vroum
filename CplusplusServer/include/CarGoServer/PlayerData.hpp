@@ -22,7 +22,7 @@ struct Player
 
 	std::queue<PlayerInputPacket> inputBuffer;
 	PlayerInput lastInput;
-	std::uint16_t lastInputIndex;
+	std::uint16_t lastInputIndex = 1;
 
 	bool IsPending() const;
 };
