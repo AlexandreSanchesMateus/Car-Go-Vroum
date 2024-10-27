@@ -68,6 +68,17 @@ public class PlayerInputManager : MonoBehaviour
             playerAction.PlayerCarMap.Disable();
     }
 
+    public void EnableUIMap()
+    {
+        if (playerAction != null && !playerAction.UI.enabled)
+            playerAction.UI.Enable();
+    }
+
+    public void DisableUIMap()
+    {
+        if (playerAction != null && playerAction.UI.enabled)
+            playerAction.UI.Disable();
+    }
 
     // Car Controller
     public void OnCarAccelerate(InputAction.CallbackContext context)

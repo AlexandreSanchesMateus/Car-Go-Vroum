@@ -71,9 +71,6 @@ constexpr float SteeringAngle = 25.f;
 constexpr float RecoverForce = 7.f;
 constexpr float TimeBeforeFliping = 0.6f;
 
-// tempo (j'espère)
-constexpr float DistanceCollisionDetected = 4.f;
-
 
 enum class GameState
 {

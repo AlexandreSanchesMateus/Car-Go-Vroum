@@ -435,7 +435,7 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 		PlayersStatePacket::PlayerState playerState;
 		playerState.playerIndex = other.index;
 		playerState.inputs = other.lastInput;
-		playerState.turnAngle = 0.f;
+		playerState.turnAngle = other.car->GetCurrentTurnAngle();
 
 		playerState.position = other.car->GetPhysixActor().getGlobalPose().p;
 		playerState.rotation = other.car->GetPhysixActor().getGlobalPose().q;
@@ -457,7 +457,7 @@ ENetPacket* build_player_state_packet(const GameData& gameData, const Player& ta
 	}
 
 	packet.inputIndex = targetPlayer.lastInputIndex;
-	packet.localTurnAngle = 0.f;
+	packet.localTurnAngle = targetPlayer.car->GetCurrentTurnAngle();
 
 	packet.localPosition = targetPlayer.car->GetPhysixActor().getGlobalPose().p;
 	packet.localRotation = targetPlayer.car->GetPhysixActor().getGlobalPose().q;

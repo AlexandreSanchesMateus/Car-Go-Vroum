@@ -73,8 +73,8 @@ public class CarController : MonoBehaviour
     private float recoverForce = 8f;
     [SerializeField, BoxGroup("Recover Settings")]
     private float timeBeforeFliping = 1f;
-    [SerializeField, BoxGroup("Recover Settings")]
-    private float flipingForce = 200f;
+    //[SerializeField, BoxGroup("Recover Settings")]
+    //private float flipingForce = 200f;
 
     public float FrontLeftWheelVelocity { get { return LF_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
     public float FrontRightWheelVelocity { get { return RF_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
@@ -311,7 +311,7 @@ public class CarController : MonoBehaviour
         m_desireTurnAngle = newInput.steer * steeringAngle;
     }
 
-    public void SetTurnAngle(float angle, float normalDesireAngle)
+    public void SetTurnAngle(float angle)
     {
         m_currentTurnAngle = angle;
     }

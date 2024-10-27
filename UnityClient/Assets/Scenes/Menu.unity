@@ -8376,7 +8376,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SCORef: {fileID: 11400000, guid: 034327f806f1dae4491653389f267720, type: 2}
-  saveSCO: {fileID: 0}
+  saveSCO: {fileID: 11400000, guid: c85ca9b1cac8dd945864452a05dd93fa, type: 2}
   joinPanel: {fileID: 145476087}
   connectionError: {fileID: 1114656382}
   ipInputField: {fileID: 1447158098}
@@ -9932,6 +9932,6 @@ SceneRoots:
   - {fileID: 1715731502}
   - {fileID: 253825129}
   - {fileID: 204705838}
+  - {fileID: 908961457}
   - {fileID: 1273439096}
   - {fileID: 288095209}
-  - {fileID: 908961457}

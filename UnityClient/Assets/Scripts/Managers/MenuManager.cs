@@ -12,8 +12,8 @@ public class MenuManager : MonoBehaviour
 {
     [SerializeField, BoxGroup("Init")]
     private GameRefSCO SCORef;
-    [SerializeField, BoxGroup("Init")]
-    private SaveDataSCO saveSCO;
+    //[SerializeField, BoxGroup("Init")]
+    //private SaveDataSCO saveSCO;
 
     [SerializeField, BoxGroup("Join")]
     private GameObject joinPanel;
@@ -48,6 +48,9 @@ public class MenuManager : MonoBehaviour
         SCORef.Menu = this;
         SCORef.GameData.state = GameData.GameState.LOBBY;
 
+        Cursor.lockState = CursorLockMode.Confined;
+        Cursor.visible = true;
+
         // vérifier s'il est déjç connecté (revernir après une partie)
         if (SCORef.Network.IsConnected)
         {
@@ -65,14 +68,14 @@ public class MenuManager : MonoBehaviour
             }
         }
 
-        if(saveSCO != null)
+        /*if(saveSCO != null)
         {
             if(!string.IsNullOrEmpty(saveSCO.lastName))
                 pseudoInputField.text = saveSCO.lastName;
 
             if(!string.IsNullOrEmpty(saveSCO.lastAddress))
                 ipInputField.text = saveSCO.lastAddress;
-        }
+        }*/
 
         joinBtn.interactable = false;
 
@@ -106,8 +109,8 @@ public class MenuManager : MonoBehaviour
             return;
         }
         
-        saveSCO.lastAddress = ipInputField.text;
-        saveSCO.lastName = pseudoInputField.text;
+        //saveSCO.lastAddress = ipInputField.text;
+        //saveSCO.lastName = pseudoInputField.text;
 
         joinPanel.SetActive(false);
         connectionPanel.SetActive(true);
