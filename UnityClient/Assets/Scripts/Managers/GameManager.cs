@@ -115,7 +115,7 @@ public class GameManager : MonoBehaviour
         }
 
         Physics.Simulate(Time.fixedDeltaTime);
-        speedTxt.text = ownCarController.ShowSpeed.ToString();
+        speedTxt.text = ownCarController.CarSpeed.ToString();
 
         // send input
         PlayerInputPacket inputPacket = new PlayerInputPacket();
@@ -136,10 +136,10 @@ public class GameManager : MonoBehaviour
             predictedInput.physicState.linearVelocity = ownCarController.CarRb.velocity;
             predictedInput.physicState.angularVelocity = ownCarController.CarRb.angularVelocity;
 
-            predictedInput.physicState.frontLeftWheelVelocity = ownCarController.FrontLeftWheelVelocity;
-            predictedInput.physicState.frontRightWheelVelocity = ownCarController.FrontRightWheelVelocity;
-            predictedInput.physicState.rearLeftWheelVelocity = ownCarController.RearLeftWheelVelocity;
-            predictedInput.physicState.rearRightWheelVelocity = ownCarController.RearRightWheelVelocity;
+            //predictedInput.physicState.frontLeftWheelVelocity = ownCarController.FrontLeftWheelVelocity;
+            //predictedInput.physicState.frontRightWheelVelocity = ownCarController.FrontRightWheelVelocity;
+            //predictedInput.physicState.rearLeftWheelVelocity = ownCarController.RearLeftWheelVelocity;
+            //predictedInput.physicState.rearRightWheelVelocity = ownCarController.RearRightWheelVelocity;
 
             foreach (Player player in SCORef.GameData.players)
             {
@@ -150,10 +150,10 @@ public class GameManager : MonoBehaviour
                 otherState.linearVelocity = player.carController.CarRb.velocity;
                 otherState.angularVelocity = player.carController.CarRb.angularVelocity;
 
-                otherState.frontLeftWheelVelocity = player.carController.FrontLeftWheelVelocity;
-                otherState.frontRightWheelVelocity = player.carController.FrontRightWheelVelocity;
-                otherState.rearLeftWheelVelocity = player.carController.RearLeftWheelVelocity;
-                otherState.rearRightWheelVelocity = player.carController.RearRightWheelVelocity;
+                //otherState.frontLeftWheelVelocity = player.carController.FrontLeftWheelVelocity;
+                //otherState.frontRightWheelVelocity = player.carController.FrontRightWheelVelocity;
+                //otherState.rearLeftWheelVelocity = player.carController.RearLeftWheelVelocity;
+                //otherState.rearRightWheelVelocity = player.carController.RearRightWheelVelocity;
 
                 predictedInput.others.Add(player.Index, otherState);
             }
@@ -304,10 +304,10 @@ public class GameManager : MonoBehaviour
                             ownCarController.CarRb.velocity = playersStatePacket.localPhysicState.linearVelocity;
                             ownCarController.CarRb.angularVelocity = playersStatePacket.localPhysicState.angularVelocity;
 
-                            ownCarController.FrontLeftWheelVelocity = playersStatePacket.localPhysicState.frontLeftWheelVelocity;
-                            ownCarController.FrontRightWheelVelocity = playersStatePacket.localPhysicState.frontRightWheelVelocity;
-                            ownCarController.RearLeftWheelVelocity = playersStatePacket.localPhysicState.rearLeftWheelVelocity;
-                            ownCarController.RearRightWheelVelocity = playersStatePacket.localPhysicState.rearRightWheelVelocity;
+                            //ownCarController.FrontLeftWheelVelocity = playersStatePacket.localPhysicState.frontLeftWheelVelocity;
+                            //ownCarController.FrontRightWheelVelocity = playersStatePacket.localPhysicState.frontRightWheelVelocity;
+                            //ownCarController.RearLeftWheelVelocity = playersStatePacket.localPhysicState.rearLeftWheelVelocity;
+                            //ownCarController.RearRightWheelVelocity = playersStatePacket.localPhysicState.rearRightWheelVelocity;
                         }
 
                         foreach (PlayersStatePacket.PlayerState playerState in playersStatePacket.otherPlayerState)
@@ -332,10 +332,10 @@ public class GameManager : MonoBehaviour
                                     player.carController.CarRb.velocity = playerState.physicState.linearVelocity;
                                     player.carController.CarRb.angularVelocity = playerState.physicState.angularVelocity;
 
-                                    player.carController.FrontLeftWheelVelocity = playerState.physicState.frontLeftWheelVelocity;
-                                    player.carController.FrontRightWheelVelocity = playerState.physicState.frontRightWheelVelocity;
-                                    player.carController.RearLeftWheelVelocity = playerState.physicState.rearLeftWheelVelocity;
-                                    player.carController.RearRightWheelVelocity = playerState.physicState.rearRightWheelVelocity;
+                                    //player.carController.FrontLeftWheelVelocity = playerState.physicState.frontLeftWheelVelocity;
+                                    //player.carController.FrontRightWheelVelocity = playerState.physicState.frontRightWheelVelocity;
+                                    //player.carController.RearLeftWheelVelocity = playerState.physicState.rearLeftWheelVelocity;
+                                    //player.carController.RearRightWheelVelocity = playerState.physicState.rearRightWheelVelocity;
                                 }
                             }
                         }
@@ -367,7 +367,7 @@ public class GameManager : MonoBehaviour
                     if (targetPlayer != null)
                     {
                         targetPlayer.isInfected = true;
-                        targetPlayer.carController.SetInfectedModel();
+                        //targetPlayer.carController.SetInfectedModel();
 
                         ++m_infectedCount;
                         --m_survivorCount;

@@ -51,6 +51,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "LookAround",
+                    "type": "Value",
+                    "id": "ea481dc9-6768-442f-9057-e4e1d6d82a7f",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
                     "name": "OpenMenu",
                     "type": "Button",
                     "id": "f47f1420-c21c-4b8a-b915-7f4ef6a42562",
@@ -168,6 +177,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "OpenMenu",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "85d2d9b6-b715-4658-8e2f-23877ed9ef96",
+                    "path": "<Mouse>/delta/x",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "LookAround",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

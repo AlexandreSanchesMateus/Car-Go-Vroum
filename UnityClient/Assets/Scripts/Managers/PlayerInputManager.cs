@@ -36,6 +36,7 @@ public class PlayerInputManager : MonoBehaviour
         playerAction.PlayerCarMap.Break.performed += OnCarBrake;
         playerAction.PlayerCarMap.Break.canceled += OnCarBrake;
         playerAction.PlayerCarMap.Recover.performed += OnCarRecover;
+        playerAction.PlayerCarMap.Recover.canceled += OnCarRecover;
     }
 
     private void OnDestroy()
@@ -52,6 +53,7 @@ public class PlayerInputManager : MonoBehaviour
         playerAction.PlayerCarMap.Break.performed -= OnCarBrake;
         playerAction.PlayerCarMap.Break.canceled -= OnCarBrake;
         playerAction.PlayerCarMap.Recover.performed -= OnCarRecover;
+        playerAction.PlayerCarMap.Recover.canceled -= OnCarRecover;
 
         DisableCarMap();
     }

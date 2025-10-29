@@ -5,21 +5,12 @@ using NaughtyAttributes;
 using TMPro;
 using DG.Tweening;
 using System.Collections;
+using UnityEngine.UIElements;
 
 public class CarController : MonoBehaviour
 {
     [SerializeField, BoxGroup("Init"), Required]
     private Rigidbody carRb;
-
-    [SerializeField, BoxGroup("Mat Config")]
-    private MeshRenderer bodyRenderer;
-    [SerializeField, BoxGroup("Mat Config")]
-    private Material redCarMat;
-    [SerializeField, BoxGroup("Mat Config")]
-    private Material blueCarMat;
-
-    [SerializeField, BoxGroup("UI")]
-    private TextMeshProUGUI nameTxt;
 
     [SerializeField, BoxGroup("Wheels")]
     private WheelData LF_wheelData;
@@ -31,14 +22,18 @@ public class CarController : MonoBehaviour
     private WheelData RB_wheelData;
 
     [SerializeField, BoxGroup("Wheels")]
-    private float wheelHight;
+    private float wheelHeight;
+    [SerializeField, BoxGroup("Wheels")]
+    private float wheelInterpolationSpeed;
 
     [SerializeField, BoxGroup("Suspension Settings")]
-    private float restDistance;
+    private float restLenght;
     [SerializeField, BoxGroup("Suspension Settings")]
-    private float springStrenght;
+    private float springTravel;
     [SerializeField, BoxGroup("Suspension Settings")]
-    private float damping;
+    private float springStiffness;
+    [SerializeField, BoxGroup("Suspension Settings")]
+    private float damperStiffness;
     [SerializeField, BoxGroup("Suspension Settings")]
     private LayerMask groundLayer;
 
@@ -47,9 +42,7 @@ public class CarController : MonoBehaviour
     [SerializeField, BoxGroup("Friction Settings"), Range(0, 1)]
     private float frictionStartSkidmark = 0.6f;
     [SerializeField, BoxGroup("Friction Settings")]
-    private AnimationCurve frontTireFriction;
-    [SerializeField, BoxGroup("Friction Settings")]
-    private AnimationCurve rearTireFriction;
+    private AnimationCurve tireFriction;
 
     [SerializeField, BoxGroup("Engine Settings")]
     private float engineTorque;
@@ -60,68 +53,66 @@ public class CarController : MonoBehaviour
     [SerializeField, BoxGroup("Engine Settings")]
     private float topReverseSpeed;
     [SerializeField, BoxGroup("Engine Settings")]
-    private float breakForce;
+    private float softBreak;
     [SerializeField, BoxGroup("Engine Settings")]
-    private float noInputFrictionForce;
+    private float hardBreak;
 
     [SerializeField, BoxGroup("Steering Settings")]
     private float steeringSpeed;
     [SerializeField, BoxGroup("Steering Settings")]
     private float steeringAngle;
 
-    [SerializeField, BoxGroup("Recover Settings")]
-    private float recoverForce = 8f;
-    [SerializeField, BoxGroup("Recover Settings")]
-    private float timeBeforeFliping = 1f;
-    //[SerializeField, BoxGroup("Recover Settings")]
-    //private float flipingForce = 200f;
-
-    public float FrontLeftWheelVelocity { get { return LF_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
-    public float FrontRightWheelVelocity { get { return RF_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
-    public float RearLeftWheelVelocity { get { return LB_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
-    public float RearRightWheelVelocity { get { return RB_wheelData.suspensionVelocity; } set { RB_wheelData.suspensionVelocity = value; } }
+    [SerializeField, BoxGroup("Flipping Settings")]
+    float flippingForce;
+    [SerializeField, BoxGroup("Flipping Settings")]
+    private LayerMask flipMask;
 
     public Rigidbody CarRb { get { return carRb; } }
+    public int CarSpeed { get; private set; }
 
-    public int ShowSpeed { get; private set; }
+    private float m_maxSpringLenght;
+    private int m_wheelGroundedCount;
 
     private float m_desireTurnAngle;
     private float m_currentTurnAngle;
 
-    public bool m_canFlip { get; private set; } = false;
     private float m_frontRearDistance;
     private float m_rearWheelDistance;
 
     private Skidmarks m_skidmarksController;
     private PlayerInput m_carInput = new PlayerInput();
 
-    private bool m_fligging;
-
 
     private void Start()
     {
         m_skidmarksController = GameObject.FindGameObjectWithTag("SkidmarkController").GetComponent<Skidmarks>();
 
+        m_maxSpringLenght = restLenght + springTravel + wheelHeight;
         m_frontRearDistance = Mathf.Abs(LB_wheelData.GetWheelTrs().localPosition.z - LF_wheelData.GetWheelTrs().localPosition.z);
         m_rearWheelDistance = Mathf.Abs(LB_wheelData.GetWheelTrs().localPosition.x - RB_wheelData.GetWheelTrs().localPosition.x);
+
+        LF_wheelData.UpdateHeight(restLenght, wheelHeight);
+        RF_wheelData.UpdateHeight(restLenght, wheelHeight);
+        LB_wheelData.UpdateHeight(restLenght, wheelHeight);
+        RB_wheelData.UpdateHeight(restLenght, wheelHeight);
     }
 
     private void Update()
     {
         // Update speed UI
-        ShowSpeed = (int)(Mathf.Abs(Vector3.Dot(transform.forward, carRb.velocity)) * 3.6f);
+        CarSpeed = (int)(carRb.velocity.magnitude * 3.6f);
 
         // Update visual
-        LF_wheelData.UpdateRotation(carRb);
+        LF_wheelData.UpdateVisual(carRb, wheelInterpolationSpeed);
         LF_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
 
-        RF_wheelData.UpdateRotation(carRb);
+        RF_wheelData.UpdateVisual(carRb, wheelInterpolationSpeed);
         RF_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
 
-        LB_wheelData.UpdateRotation(carRb);
+        LB_wheelData.UpdateVisual(carRb, wheelInterpolationSpeed);
         LB_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
 
-        RB_wheelData.UpdateRotation(carRb);
+        RB_wheelData.UpdateVisual(carRb, wheelInterpolationSpeed);
         RB_wheelData.UpdateSkidmark(m_skidmarksController, frictionStartSkidmark);
     }
 
@@ -157,151 +148,98 @@ public class CarController : MonoBehaviour
             RF_Wheel.transform.localEulerAngles = new Vector3(0f, 0f, 0f);
         }
 
-        bool isFullyGrounded = true;
-
+        m_wheelGroundedCount = 0;
         // Wheel physic
-        isFullyGrounded &= UpdateWheelPhysics(LF_wheelData, frontTireFriction, true);
-        isFullyGrounded &= UpdateWheelPhysics(RF_wheelData, frontTireFriction, true);
-        isFullyGrounded &= UpdateWheelPhysics(LB_wheelData, rearTireFriction, true);
-        isFullyGrounded &= UpdateWheelPhysics(RB_wheelData, rearTireFriction, true);
-
-        // No input ground friction
-        if (isFullyGrounded)
-        {
-            if (m_carInput.acceleration == 0f)
-            {
-                carRb.centerOfMass = new Vector3(0, -0.05f, 0.25f);
-
-                float carSpeed = Vector3.Dot(transform.forward, carRb.velocity);
-                carRb.AddForce(transform.forward * -carSpeed * 4, ForceMode.Impulse);
-            }
-            else
-                carRb.centerOfMass = new Vector3(0, -0.05f, -0.04f);
-        }
-        else if(!m_fligging && m_carInput.softRecover)
-        {
-            if(Vector3.Dot(transform.up, Vector3.up) < 0.6f && carRb.velocity.magnitude < 0.05f)
-            {
-                m_fligging = true;
-                carRb.AddForce(Vector3.up * recoverForce, ForceMode.VelocityChange);
-                StartCoroutine(FlipCar());
-            }
-        }
+        UpdateWheelPhysics(LF_wheelData, true);
+        UpdateWheelPhysics(RF_wheelData, true);
+        UpdateWheelPhysics(LB_wheelData, true);
+        UpdateWheelPhysics(RB_wheelData, true);
     }
 
-    bool UpdateWheelPhysics(WheelData wheelData, AnimationCurve frictionCurve, bool driveWheel)
+    void UpdateWheelPhysics(WheelData wheelData, bool driveWheel)
     {
-        Transform wheelPos = wheelData.GetWheelTrs();
+        Transform wheelTransform = wheelData.GetWheelTrs();
 
-        Ray ray = new Ray(wheelPos.position, transform.rotation * Vector3.down);
-        if (Physics.Raycast(ray, out RaycastHit hitInfo, restDistance, groundLayer))
+        Ray ray = new Ray(wheelTransform.position, -wheelTransform.up);
+        if (Physics.Raycast(ray, out RaycastHit hitInfo, m_maxSpringLenght, groundLayer))
         {
-            // Force applied to the wheel
-            Vector3 physicForce = Vector3.zero;
 
-            // ---------------------- Forward Force (acceleration / break) ----------------------
-            float carSpeed = Vector3.Dot(transform.forward, carRb.velocity);
+#if UNITY_EDITOR
+            Debug.DrawRay(wheelTransform.position, transform.rotation * Vector3.down * hitInfo.distance, Color.green);
+#endif
 
+            Vector3 wheelVelocity = carRb.GetPointVelocity(wheelTransform.position);
+
+            float forwardVelocity = Vector3.Dot(wheelTransform.forward, wheelVelocity);
+            float sideVelocity = Vector3.Dot(wheelTransform.right, wheelVelocity);
+            float upVelocity = Vector3.Dot(wheelTransform.up, wheelVelocity);
+
+#if UNITY_EDITOR
+            Debug.DrawRay(hitInfo.point, wheelTransform.forward * forwardVelocity, Color.blue);
+            Debug.DrawRay(hitInfo.point, wheelTransform.right * sideVelocity, Color.red);
+            Debug.DrawRay(hitInfo.point, wheelTransform.up * upVelocity, Color.green);
+#endif
+
+            float movingDirection = Mathf.Sign(forwardVelocity);
             if (m_carInput.brake)
             {
-                if (carSpeed < -0.1f)
+                if (Mathf.Abs(forwardVelocity) < 0.3f)
+                    carRb.AddForceAtPosition(-wheelTransform.forward * forwardVelocity * 200, hitInfo.point);
+                else
+                    carRb.AddForceAtPosition(-wheelTransform.forward * movingDirection * hardBreak, hitInfo.point);
+            }
+            else
+            {
+                if (m_carInput.acceleration != 0f)
                 {
-                    physicForce = wheelPos.forward * breakForce;
-                    //wheelData.StartSkidmark(1, hitInfo.point, hitInfo.normal);
-                }
-                else if (carSpeed > 0.1f)
-                {
-                    physicForce = -wheelPos.forward * breakForce;
-                    //wheelData.StartSkidmark(1, hitInfo.point, hitInfo.normal);
+                    if (Mathf.Abs(forwardVelocity) < 5f || (Mathf.Sign(m_carInput.acceleration) == movingDirection))
+                    {
+                        // Accelerate
+                        float normelizeSpeed = Mathf.Clamp01(Mathf.Abs(forwardVelocity * 3.6f) / (m_carInput.acceleration > 0 ? topSpeed : topReverseSpeed));
+                        float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_carInput.acceleration * engineTorque;
+                        carRb.AddForceAtPosition(wheelTransform.forward * availableTorque, hitInfo.point);
+                    }
+                    else
+                    {
+                        // Soft breaking
+                        carRb.AddForceAtPosition(-movingDirection * wheelTransform.forward * softBreak, hitInfo.point);
+                    }
                 }
                 else
                 {
-                    physicForce = transform.forward * -carSpeed * 600;
-                    wheelData.StopSkidmark();
+                    // Air drag
+                    carRb.AddForceAtPosition(-wheelTransform.forward * forwardVelocity * 5, hitInfo.point);
                 }
-            }
-            else
-            {
-                if (m_carInput.acceleration > 0f)
-                {
-                    float normelizeSpeed = Mathf.Clamp01(Mathf.Abs(carSpeed) / topSpeed);
-
-                    // Break
-                    if (carSpeed < 0f)
-                    {
-                        physicForce = wheelPos.forward * breakForce;
-                        //wheelData.StartSkidmark(100, hitInfo.point, hitInfo.normal);
-                    }
-                    else if (normelizeSpeed < 1f && driveWheel)
-                    {
-                        // Move forward
-                        float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_carInput.acceleration * engineTorque;
-                        physicForce = wheelPos.forward * availableTorque;
-                    }
-                }
-                else if (m_carInput.acceleration < 0f)
-                {
-                    float normelizeSpeed = Mathf.Clamp01(Mathf.Abs(carSpeed) / topReverseSpeed);
-
-                    // Break
-                    if (carSpeed > 0f)
-                    {
-                        physicForce = -wheelPos.forward * breakForce;
-                        //wheelData.StartSkidmark(100, hitInfo.point, hitInfo.normal);
-                    }
-                    else if (normelizeSpeed < 1f && driveWheel)
-                    {
-                        // Move backward
-                        float availableTorque = virtualEngine.Evaluate(normelizeSpeed) * m_carInput.acceleration * engineTorque * 0.8f;
-                        physicForce = wheelPos.forward * availableTorque;
-                    }
-                }  
             }
 
             // -------------------------- Vertical Force (suspension) --------------------------
-            float offset = restDistance - hitInfo.distance;
-            float currentVelocity = (wheelData.suspensionVelocity - offset) / Time.fixedDeltaTime;
-            physicForce += transform.up * ((offset * springStrenght) - (currentVelocity * damping));
-            wheelData.suspensionVelocity = offset;
+            float currentSpringLenght = hitInfo.distance - wheelHeight;
+            float springCompression = (restLenght - currentSpringLenght) / springTravel;
+            float springForce = (springStiffness * springCompression) - (upVelocity * damperStiffness);
+            carRb.AddForceAtPosition(wheelTransform.up * springForce, wheelTransform.position);
 
             // ------------------------ Horizontal Force (side friction) ------------------------
-            Vector3 wheelVelocity = carRb.GetPointVelocity(wheelPos.position);
-            float steeringVel = Vector3.Dot(wheelPos.right, wheelVelocity);
-            float friction = Mathf.Abs(steeringVel / wheelVelocity.magnitude);
-            float desireVelChange = -steeringVel * frictionCurve.Evaluate(friction);
-            float desireAccel = desireVelChange / Time.fixedDeltaTime;
+            float sideSpeed = Mathf.Abs(sideVelocity);
+            float sideFrictionRation = sideSpeed / (sideSpeed + Mathf.Abs(forwardVelocity));
+            carRb.AddForceAtPosition(tireMass * (-wheelTransform.right * sideVelocity * tireFriction.Evaluate(sideFrictionRation) / Time.fixedDeltaTime), wheelTransform.position - wheelTransform.up * 0.45f);
 
-            physicForce += wheelPos.right * tireMass * desireAccel;
-
-            if (Mathf.Abs(steeringVel) >= 0.1f && friction >= frictionStartSkidmark)
-                wheelData.StartSkidmark(friction, hitInfo.point, hitInfo.normal);
-            else
-                wheelData.StopSkidmark();
-
-            // Applie force to rigidbody
-            carRb.AddForceAtPosition(physicForce, wheelPos.position);
 
             // Move Model
-            //model.transform.localPosition = new Vector3(0, -hitInfo.distance + wheelHight, 0);
-            wheelData.UpdateHight(hitInfo.distance, wheelHight);
-
-            return true;
+            wheelData.UpdateHeight(hitInfo.distance, wheelHeight);
+            ++m_wheelGroundedCount;
         }
         else
         {
-            // Move Model
-            //model.transform.localPosition = new Vector3(0, -restDistance + wheelHight, 0);
-            wheelData.UpdateHight(restDistance, wheelHight);
-            wheelData.StopSkidmark();
 
-            return false;
+#if UNITY_EDITOR
+            Debug.DrawRay(wheelTransform.position, transform.rotation * Vector3.down * restLenght, Color.red);
+#endif
+
+            // Move Model
+            wheelData.UpdateHeight(m_maxSpringLenght - wheelHeight, wheelHeight);
+            wheelData.StopSkidmark();
         }
     }
-
-    /*public void SetDesireTurnAngle(float normalValue)
-    {
-        m_desireTurnAngle = normalValue * steeringAngle;
-    }*/
 
     public void SetCarInput(PlayerInput newInput)
     {
@@ -314,68 +252,33 @@ public class CarController : MonoBehaviour
         m_currentTurnAngle = angle;
     }
 
-    /*public void SoftRecover()
-    {
-        if (m_canFlip)
-        {
-            carRb.AddForce(Vector3.up * recoverForce, ForceMode.VelocityChange);
-            StartCoroutine(FlipCar());
-        }
-    }*/
-
-    private IEnumerator FlipCar()
-    {
-        yield return new WaitForSeconds(timeBeforeFliping);
-
-        carRb.angularVelocity = Vector3.zero;
-        Vector3 euler = carRb.rotation.eulerAngles;
-        transform.rotation = Quaternion.Euler(euler.x, euler.y, 0f);
-        m_fligging = false;
-
-        /*float timer = 0f;
-        float angle = Vector3.SignedAngle(transform.up, Vector3.up, transform.forward);
-
-        bool startLeft = angle < 0f;
-        carRb.AddRelativeTorque(0f, 0f, angle / 180 * flipingForce, ForceMode.VelocityChange);
-
-        while (timer < 1f)
-        {
-            angle = Vector3.SignedAngle(transform.up, Vector3.up, transform.forward);
-
-            if (startLeft && angle > 0.1f)
-                break;
-            else if (!startLeft && angle < -0.1f)
-                break;
-
-            timer += Time.deltaTime;
-            yield return null;
-        }
-
-        carRb.angularVelocity = new Vector3(0, 0, 0);*/
-    }
-
     public void InitController(bool infected, string name)
     {
-        if (nameTxt != null)
-            nameTxt.text = name;
+        /*if (nameTxt != null)
+            nameTxt.text = name;*/
 
-        if(infected)
-            SetInfectedModel();
+       /* if (infected)
+            SetInfectedModel();*/
     }
 
-    public void SetInfectedModel()
+    private void OnCollisionStay(Collision collision)
     {
-        bodyRenderer.material = redCarMat;
-
-        if(nameTxt != null)
-            nameTxt.color = Color.red;
+        if (collision != null && ((1 << collision.gameObject.layer) & flipMask) != 0 && m_wheelGroundedCount < 2)
+        {
+            // Flipping force (torque)
+            Vector3 surfaceNormal = collision.GetContact(0).normal;
+            float angle = Vector3.SignedAngle(surfaceNormal, transform.up, transform.forward);
+            carRb.AddTorque(transform.forward * -flippingForce * angle);
+        }
     }
 
-    public void SetSurvivorModel()
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
     {
-        bodyRenderer.material = blueCarMat;
+        Gizmos.color = Color.yellow;
 
-        if (nameTxt != null)
-            nameTxt.color = Color.blue;
+        if (carRb != null)
+            Gizmos.DrawSphere(carRb.transform.position + carRb.centerOfMass, 0.1f);
     }
+#endif
 }

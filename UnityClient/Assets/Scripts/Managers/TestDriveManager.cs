@@ -20,7 +20,7 @@ public class TestDriveManager : MonoBehaviour
     private void Update()
     {
         if (speed)
-            speed.text = carController.ShowSpeed.ToString();
+            speed.text = carController.CarSpeed.ToString();
     }
 
     private void FixedUpdate()

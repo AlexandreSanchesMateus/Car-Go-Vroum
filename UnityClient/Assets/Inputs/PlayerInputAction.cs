@@ -73,6 +73,15 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""LookAround"",
+                    ""type"": ""Value"",
+                    ""id"": ""ea481dc9-6768-442f-9057-e4e1d6d82a7f"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
                     ""name"": ""OpenMenu"",
                     ""type"": ""Button"",
                     ""id"": ""f47f1420-c21c-4b8a-b915-7f4ef6a42562"",
@@ -190,6 +199,17 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""OpenMenu"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""85d2d9b6-b715-4658-8e2f-23877ed9ef96"",
+                    ""path"": ""<Mouse>/delta/x"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""LookAround"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -741,6 +761,7 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
         m_PlayerCarMap_Break = m_PlayerCarMap.FindAction("Break", throwIfNotFound: true);
         m_PlayerCarMap_Recover = m_PlayerCarMap.FindAction("Recover", throwIfNotFound: true);
         m_PlayerCarMap_LookBack = m_PlayerCarMap.FindAction("LookBack", throwIfNotFound: true);
+        m_PlayerCarMap_LookAround = m_PlayerCarMap.FindAction("LookAround", throwIfNotFound: true);
         m_PlayerCarMap_OpenMenu = m_PlayerCarMap.FindAction("OpenMenu", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
@@ -821,6 +842,7 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
     private readonly InputAction m_PlayerCarMap_Break;
     private readonly InputAction m_PlayerCarMap_Recover;
     private readonly InputAction m_PlayerCarMap_LookBack;
+    private readonly InputAction m_PlayerCarMap_LookAround;
     private readonly InputAction m_PlayerCarMap_OpenMenu;
     public struct PlayerCarMapActions
     {
@@ -831,6 +853,7 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
         public InputAction @Break => m_Wrapper.m_PlayerCarMap_Break;
         public InputAction @Recover => m_Wrapper.m_PlayerCarMap_Recover;
         public InputAction @LookBack => m_Wrapper.m_PlayerCarMap_LookBack;
+        public InputAction @LookAround => m_Wrapper.m_PlayerCarMap_LookAround;
         public InputAction @OpenMenu => m_Wrapper.m_PlayerCarMap_OpenMenu;
         public InputActionMap Get() { return m_Wrapper.m_PlayerCarMap; }
         public void Enable() { Get().Enable(); }
@@ -856,6 +879,9 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
             @LookBack.started += instance.OnLookBack;
             @LookBack.performed += instance.OnLookBack;
             @LookBack.canceled += instance.OnLookBack;
+            @LookAround.started += instance.OnLookAround;
+            @LookAround.performed += instance.OnLookAround;
+            @LookAround.canceled += instance.OnLookAround;
             @OpenMenu.started += instance.OnOpenMenu;
             @OpenMenu.performed += instance.OnOpenMenu;
             @OpenMenu.canceled += instance.OnOpenMenu;
@@ -878,6 +904,9 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
             @LookBack.started -= instance.OnLookBack;
             @LookBack.performed -= instance.OnLookBack;
             @LookBack.canceled -= instance.OnLookBack;
+            @LookAround.started -= instance.OnLookAround;
+            @LookAround.performed -= instance.OnLookAround;
+            @LookAround.canceled -= instance.OnLookAround;
             @OpenMenu.started -= instance.OnOpenMenu;
             @OpenMenu.performed -= instance.OnOpenMenu;
             @OpenMenu.canceled -= instance.OnOpenMenu;
@@ -1031,6 +1060,7 @@ public partial class @PlayerInputAction: IInputActionCollection2, IDisposable
         void OnBreak(InputAction.CallbackContext context);
         void OnRecover(InputAction.CallbackContext context);
         void OnLookBack(InputAction.CallbackContext context);
+        void OnLookAround(InputAction.CallbackContext context);
         void OnOpenMenu(InputAction.CallbackContext context);
     }
     public interface IUIActions
