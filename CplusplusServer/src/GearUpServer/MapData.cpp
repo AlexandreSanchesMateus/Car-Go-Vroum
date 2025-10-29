@@ -1,4 +1,4 @@
-#include "CarGoServer/MapData.hpp"
+#include "GearUpServer/MapData.hpp"
 
 void from_json(const nlohmann::json& j, physx::PxVec3& vec) {
 	vec = physx::PxVec3(j["X"], j["Y"], j["Z"]);

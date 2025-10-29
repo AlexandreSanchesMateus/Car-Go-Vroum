@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "CarGoServer/MapData.hpp"
-#include "CarGoServer/ClientCar.hpp"
-#include "CarGoServer/CarSimulationEventCallback.hpp"
+#include "GearUpServer/MapData.hpp"
+#include "GearUpServer/ClientCar.hpp"
+#include "GearUpServer/CarSimulationEventCallback.hpp"
 #include <physx/PxPhysicsAPI.h>
 #include <vector>
 #include <memory>

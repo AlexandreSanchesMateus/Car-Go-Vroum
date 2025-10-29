@@ -1,9 +1,9 @@
-﻿#include "CarGoServer/Constant.hpp"
-#include "CarGoServer/Protocol.hpp"
-#include "CarGoServer/PlayerData.hpp"
-#include "CarGoServer/GameData.hpp"
-#include "CarGoServer/Command.hpp"
-#include "CarGoServer/Map.hpp"
+﻿#include "GearUpServer/Constant.hpp"
+#include "GearUpServer/Protocol.hpp"
+#include "GearUpServer/PlayerData.hpp"
+#include "GearUpServer/GameData.hpp"
+#include "GearUpServer/Command.hpp"
+#include "GearUpServer/Map.hpp"
 #include <fmt/core.h>
 #include <fmt/color.h>
 #include <enet6/enet.h>
@@ -11,7 +11,7 @@
 #include <memory>
 #include <stdexcept>
 
-#include <CarGoServer/Math.hpp>
+#include <GearUpServer/Math.hpp>
 
 void handle_message(Player& player, const std::vector<std::uint8_t>& message, GameData& gameData, Map& map, const Command& cmdPrompt);
 void PurgePlayers(const GameData& gameData);

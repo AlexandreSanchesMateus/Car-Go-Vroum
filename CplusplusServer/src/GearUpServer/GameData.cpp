@@ -1,5 +1,5 @@
-#include "CarGoServer/GameData.hpp"
-#include "CarGoServer/Map.hpp"
+#include "GearUpServer/GameData.hpp"
+#include "GearUpServer/Map.hpp"
 #include <fmt/core.h>
 #include <fmt/color.h>
 

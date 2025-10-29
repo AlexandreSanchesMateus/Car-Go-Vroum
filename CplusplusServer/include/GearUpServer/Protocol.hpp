@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "CarGoServer/PlayerInput.hpp"
+#include "GearUpServer/PlayerInput.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>

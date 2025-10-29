@@ -1,6 +1,6 @@
-#include "CarGoServer/CarSimulationEventCallback.hpp"
-#include "CarGoServer/ClientCar.hpp"
-#include "CarGoServer/Protocol.hpp"
+#include "GearUpServer/CarSimulationEventCallback.hpp"
+#include "GearUpServer/ClientCar.hpp"
+#include "GearUpServer/Protocol.hpp"
 
 CarSimulationEventCallback::CarSimulationEventCallback(GameData& gameData, Map& map) : m_gameData(gameData), m_map(map)
 {

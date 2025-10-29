@@ -1,7 +1,7 @@
-#include "CarGoServer/ClientCar.hpp"
-#include "CarGoServer/Constant.hpp"
-#include "CarGoServer/PlayerInput.hpp"
-#include "CarGoServer/Math.hpp"
+#include "GearUpServer/ClientCar.hpp"
+#include "GearUpServer/Constant.hpp"
+#include "GearUpServer/PlayerInput.hpp"
+#include "GearUpServer/Math.hpp"
 #include <fmt/core.h>
 
 ClientCar::ClientCar(std::uint16_t playerIndex, physx::PxRigidDynamic* dynamicCar, physx::PxScene* scene, physx::PxPhysics* physics)
@@ -125,8 +125,6 @@ void ClientCar::UpdatePhysics(const PlayerInput& inputs, float deltaTime)
 			m_fligging = false;
 		}
 	}
-
-	//fmt::println("speed : {}", (int)(std::abs(forward.dot(m_actor->getLinearVelocity()) * 3.6f)));
 }
 
 bool ClientCar::UpdateWheelPhysics(WheelData& wheelData, const Timeline& frictionTimeLine, const PlayerInput& inputs, float deltaTime)

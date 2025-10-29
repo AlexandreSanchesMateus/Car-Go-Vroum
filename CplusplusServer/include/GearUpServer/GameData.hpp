@@ -1,7 +1,7 @@
 #pragma once
 
-#include "CarGoServer/Constant.hpp"
-#include "CarGoServer/PlayerData.hpp"
+#include "GearUpServer/Constant.hpp"
+#include "GearUpServer/PlayerData.hpp"
 #include <vector>
 
 class Map;

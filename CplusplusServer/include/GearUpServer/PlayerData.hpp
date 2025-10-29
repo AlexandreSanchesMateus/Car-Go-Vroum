@@ -1,8 +1,8 @@
 #pragma once
 
-#include "CarGoServer/ClientCar.hpp"
-#include "CarGoServer/PlayerInput.hpp"
-#include "CarGoServer/Protocol.hpp"
+#include "GearUpServer/ClientCar.hpp"
+#include "GearUpServer/PlayerInput.hpp"
+#include "GearUpServer/Protocol.hpp"
 #include <enet6/enet.h>
 #include <cstdint>
 #include <string>

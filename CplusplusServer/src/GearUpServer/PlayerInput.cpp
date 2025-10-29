@@ -1,5 +1,5 @@
-#include "CarGoServer/PlayerInput.hpp"
-#include "CarGoServer/Protocol.hpp"
+#include "GearUpServer/PlayerInput.hpp"
+#include "GearUpServer/Protocol.hpp"
 
 void PlayerInput::Serialize(std::vector<std::uint8_t>& byteArray) const
 {
